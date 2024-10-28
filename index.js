@@ -6,7 +6,7 @@ const cors = require('cors');
 const sharp = require('sharp');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 80;
 
 const allowedOrigins = ['http://localhost:5173', 'https://tournament.duelistsunite.org/']; // URLs permitidas
 
