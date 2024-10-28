@@ -47,6 +47,8 @@ const upload = multer({
   },
 });
 
+app.get('/', (req, res) => res.send('Oiiii!'))
+
 // Rota POST para upload da imagem
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
