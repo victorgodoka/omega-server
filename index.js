@@ -4,6 +4,7 @@ const multer = require('multer');
 const AWS = require('aws-sdk');
 const cors = require('cors');
 const sharp = require('sharp');
+const decks = require('./routes/decks')
 
 const app = express();
 const port = process.env.PORT || 80;
@@ -48,6 +49,7 @@ const upload = multer({
 });
 
 app.get('/', (req, res) => res.send('Oiiii!'))
+app.get('/decks', decks)
 
 // Rota POST para upload da imagem
 app.post('/upload', upload.single('file'), async (req, res) => {
