@@ -131,10 +131,12 @@ router.get('/', async (req, res) => {
 
     const result = rows.slice(0, 10).map(async row => {
       const duelist = {
+        id,
         deck: row.duelist1 === id ? await convertTodeck(row.deck1) : await convertTodeck(row.deck2)
       };
 
       const opponent = {
+        id: row.duelist1 === id ? row.duelist2 : row.duelist1,
         deck: row.duelist1 === id ? await convertTodeck(row.deck2) : await convertTodeck(row.deck1)
       };
 
