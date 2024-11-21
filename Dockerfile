@@ -1,18 +1,20 @@
-# Use uma imagem Node.js oficial
-FROM node:22
+# Usar uma imagem base do Node.js
+FROM node:18
 
-# Define o diretório de trabalho dentro do contêiner
-WORKDIR /
+# Diretório de trabalho dentro do contêiner
+WORKDIR /app
 
-# Copia os arquivos necessários para o contêiner
-COPY package*.json ./
+# Copiar o package.json e yarn.lock para o diretório de trabalho
+COPY package.json yarn.lock ./
+
+# Instalar as dependências
+RUN yarn install --frozen-lockfile
+
+# Copiar o restante dos arquivos da aplicação
 COPY . .
 
-# Instala as dependências
-RUN npm install
-
-# Expõe a porta em que a aplicação será executada
+# Expor a porta que a aplicação vai rodar
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
-CMD ["npm", "start"]
+# Comando para rodar a aplicação
+CMD ["yarn", "start"]
