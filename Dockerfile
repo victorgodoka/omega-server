@@ -1,20 +1,13 @@
-# Use a imagem Node.js oficial
 FROM node:18
 
-# Define o diretório de trabalho dentro do contêiner
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copia o arquivo package.json e yarn.lock
-COPY package.json yarn.lock ./
+COPY package*.json ./
 
-# Instala as dependências
-RUN yarn install
+RUN npm install
 
-# Copia o restante dos arquivos para o contêiner
 COPY . .
 
-# Expõe a porta da aplicação
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
-CMD ["yarn", "start"]
+CMD ["node", "index.js"]
