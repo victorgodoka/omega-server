@@ -3,7 +3,7 @@ services:
   app:
     image: node:18
     container_name: omega-web-server
-    working_dir: /
+    working_dir: /app
     volumes:
       - /data/compose/9:/app:rw
     ports:
