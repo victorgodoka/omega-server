@@ -2,9 +2,9 @@ version: '3.8'
 services:
   app:
     image: node:22
-    working_dir: /app
+    working_dir: /
     volumes:
-      - .:/app
+      - .:/
     ports:
       - "3000:3000"
     command: ["npm", "start"]
