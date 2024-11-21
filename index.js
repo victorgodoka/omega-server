@@ -17,7 +17,7 @@ const decks = require('./routes/decks')
 const app = express();
 const port = process.env.PORT || 80;
 
-const allowedOrigins = ['http://localhost:5173', 'https://tournament.duelistsunite.org/']; // URLs permitidas
+const allowedOrigins = ['http://localhost:5173', 'https://tournament.duelistsunite.org', 'https://omega.victorgodoka.com.br']; // URLs permitidas
 
 // Middleware CORS com verificação dinâmica
 app.use(cors({
