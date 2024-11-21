@@ -1,7 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
-const AWS = require('aws-sdk');
+
+const {
+  Upload,
+} = require('@aws-sdk/lib-storage');
+
+const {
+  S3,
+} = require('@aws-sdk/client-s3');
+
 const cors = require('cors');
 const sharp = require('sharp');
 const decks = require('./routes/decks')
@@ -23,9 +31,12 @@ app.use(cors({
 }));
 
 // Configuração do S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+const s3 = new S3({
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+
   region: process.env.AWS_REGION,
 });
 
@@ -49,7 +60,7 @@ const upload = multer({
 });
 
 app.get('/', (req, res) => res.send('Oiiii!'))
-app.get('/decks', decks)
+app.use('/decks', decks)
 
 // Rota POST para upload da imagem
 app.post('/upload', upload.single('file'), async (req, res) => {
@@ -73,7 +84,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     };
 
     // Enviando a imagem para o bucket S3
-    const uploadResult = await s3.upload(params).promise();
+    const uploadResult = await new Upload({
+      client: s3,
+      params,
+    }).done();
 
     res.json({
       message: 'Upload realizado com sucesso!',
