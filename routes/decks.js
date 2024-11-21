@@ -121,8 +121,20 @@ router.get('/', async (req, res) => {
   const { id } = req.query;
   try {
     const [rows] = await db.query(
-      `SELECT CAST(duelist1 AS CHAR) AS duelist1, CAST(duelist2 AS CHAR) AS duelist2, deck1, deck2, start, result, result1,result2,result3
-       FROM duel
+      `SELECT CAST(duelist1 AS CHAR) AS duelist1, CAST(duelist2 AS CHAR) AS duelist2, deck1, deck2, start, result, result1,result2,result3,
+        u1.id AS duelist1_id,
+        u1.username AS duelist1_username,
+        u1.avatar AS duelist1_avatar,
+        u1.displayname AS duelist1_displayname,
+        u2.id AS duelist2_id,
+        u2.username AS duelist2_username,
+        u2.avatar AS duelist2_avatar,
+        u2.displayname AS duelist2_displayname
+       FROM duel d
+      JOIN
+          user_discord_data u1 ON u1.id = d.duelist1
+      JOIN
+          user_discord_data u2 ON u2.id = d.duelist2
        WHERE (duelist1 = ? OR duelist2 = ?) AND region = 1
        GROUP BY duelist1, duelist2, deck1, deck2, start
        ORDER BY start DESC`,
@@ -132,12 +144,22 @@ router.get('/', async (req, res) => {
     const result = rows.slice(0, 10).map(async row => {
       const duelist = {
         id,
-        deck: row.duelist1 === id ? await convertTodeck(row.deck1) : await convertTodeck(row.deck2)
+        deck: row.duelist1 === id ? await convertTodeck(row.deck1) : await convertTodeck(row.deck2),
+        discord: {
+          username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
+          avatar: row.duelist1 === id ? row.duelist1_avatar : row.duelist2_avatar,
+          displayname: row.duelist1 === id ? row.duelist1_displayname : row.duelist2_displayname
+        }
       };
 
       const opponent = {
         id: row.duelist1 === id ? row.duelist2 : row.duelist1,
-        deck: row.duelist1 === id ? await convertTodeck(row.deck2) : await convertTodeck(row.deck1)
+        deck: row.duelist1 === id ? await convertTodeck(row.deck2) : await convertTodeck(row.deck1),
+        discord: {
+          username: row.duelist1 === id ? row.duelist2_username : row.duelist1_username,
+          avatar: row.duelist1 === id ? row.duelist2_avatar : row.duelist1_avatar,
+          displayname: row.duelist1 === id ? row.duelist2_displayname : row.duelist1_displayname
+        }
       };
 
       // const result = mostFrequentValue([row.result1, row.result2, row.result3].filter(n => n >= 0))
