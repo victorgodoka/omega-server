@@ -1,13 +1,12 @@
-version: "3.9"
-
 services:
   omega-web-server:
     build:
       context: .  # Diretório onde o Dockerfile está localizado
     container_name: omega-web-server
     ports:
-      - "3000:3000"  # Mapear a porta interna do contêiner para a porta do host
+      - "3000:3000"  # Mapeia a porta do contêiner para a do host
     volumes:
-      - .:/app  # Montar o diretório da aplicação no host para o contêiner
+      - .:/app  # Monta o diretório atual da aplicação no contêiner
+    working_dir: /app  # Define o diretório de trabalho como /app
     environment:
       - NODE_ENV=production
