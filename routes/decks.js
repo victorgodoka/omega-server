@@ -121,20 +121,18 @@ router.get('/', async (req, res) => {
   const { id } = req.query;
   try {
     const [rows] = await db.query(
-      `SELECT CAST(duelist1 AS CHAR) AS duelist1, CAST(duelist2 AS CHAR) AS duelist2, deck1, deck2, start, result, result1,result2,result3,
-        u1.id AS duelist1_id,
+      `SELECT CAST(d.duelist1 AS CHAR) AS duelist1, CAST(d.duelist2 AS CHAR) AS duelist2, d.deck1, d.deck2, d.start, d.result, d.result1,d.result2,d.result3,
         u1.username AS duelist1_username,
         u1.avatar AS duelist1_avatar,
         u1.displayname AS duelist1_displayname,
-        u2.id AS duelist2_id,
         u2.username AS duelist2_username,
         u2.avatar AS duelist2_avatar,
         u2.displayname AS duelist2_displayname
        FROM duel d
       JOIN
-          user_discord_data u1 ON u1.id = d.duelist1
+          user_discord_data u1 ON u1.discord_id = d.duelist1
       JOIN
-          user_discord_data u2 ON u2.id = d.duelist2
+          user_discord_data u2 ON u2.discord_id = d.duelist2
        WHERE (duelist1 = ? OR duelist2 = ?) AND region = 1
        GROUP BY duelist1, duelist2, deck1, deck2, start
        ORDER BY start DESC`,
