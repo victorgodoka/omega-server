@@ -29,6 +29,7 @@ app.use(cors({
     }
   }
 }));
+app.use(express.static('public'));
 
 // Configuração do S3
 const s3 = new S3({
