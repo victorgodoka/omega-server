@@ -13,9 +13,16 @@ const {
 const cors = require('cors');
 const sharp = require('sharp');
 const decks = require('./routes/decks')
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+const options = {
+  key: fs.readFileSync('./certificados/private.key'),
+  cert: fs.readFileSync('./certificados/fullchain.crt')
+};
 
 const allowedOrigins = ['http://localhost:5173', 'https://tournament.duelistsunite.org', 'https://omega.victorgodoka.com.br']; // URLs permitidas
 
@@ -106,6 +113,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 // Iniciando o servidor
-app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+https.createServer(options, app).listen(443, () => {
+  console.log(`Servidor rodando em http://localhost:${443}`);
 });
