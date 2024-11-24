@@ -6,6 +6,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
 const carddb = require('./carddb.json');
+const { contarRepeticoes } = require('../utils/decks')
 
 const getRowsByIds = (ids) => {
   const dbPath = path.join(__dirname, 'OmegaDB.cdb');
@@ -31,20 +32,6 @@ const getRowsByIds = (ids) => {
     db.close();
   });
 };
-
-function contarRepeticoes(arr) {
-  const contador = {};
-  arr.forEach(num => {
-    contador[num] = (contador[num] || 0) + 1;
-  });
-
-  const resultado = Object.keys(contador).map(key => ({
-    id: parseInt(key),
-    qtd: contador[key]
-  }));
-
-  return resultado;
-}
 
 const contarDecks = array => Object.keys(array.reduce((acc, { archetype }) => {
   acc[archetype] = acc[archetype] ? acc[archetype] + 1 : 1;
