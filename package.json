@@ -22,6 +22,9 @@
   },
   "scripts": {
     "start": "node ./index.js",
-    "dev": "nodemon ./index.js"
+    "dev": "nodemon ./index.js",
+    "predeploy": "docker build . -t victorgodoka/omega-web-server:latest",
+    "deploy": "git push",
+    "postdeploy": "docker push victorgodoka/omega-web-server:latest"
   }
 }
