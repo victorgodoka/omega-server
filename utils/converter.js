@@ -1,6 +1,5 @@
-const zlib = require('zlib');
-const { Buffer } = require('buffer');
-const { promisify } = require('util');
+import zlib from 'zlib';
+import { Buffer } from 'buffer';
 
 class InvalidMainSize extends Error {
   constructor(message) {
@@ -30,7 +29,7 @@ class InvalidDeckCode extends Error {
   }
 }
 
-const encode = (mainSize, sideSize, passwords, deckPassword = null) => {
+export const encode = (mainSize, sideSize, passwords, deckPassword = null) => {
   const sizeError = (type, start, end, error, plural) => {
     return `The ${type} deck must contain ${start} to ${end} cards, not ${error} card${plural}`;
   };
@@ -79,7 +78,7 @@ const encode = (mainSize, sideSize, passwords, deckPassword = null) => {
   return compressed.toString('base64');
 };
 
-const decode = (code) => {
+export const decode = (code) => {
   try {
     const decodedBuffer = Buffer.from(code, 'base64');
     const decompressedBuffer = zlib.inflateRawSync(decodedBuffer);
@@ -108,14 +107,4 @@ const decode = (code) => {
   } catch (error) {
     throw new InvalidDeckCode('Invalid Omega deck code');
   }
-};
-
-// Exports
-module.exports = {
-  encode,
-  decode,
-  InvalidMainSize,
-  InvalidSideSize,
-  SizeMismatch,
-  InvalidDeckCode
 };

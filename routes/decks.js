@@ -1,108 +1,16 @@
-const express = require('express');
+import express from 'express'
+import { convertTodeck, contarDecks } from '../utils/decks.js'
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
+
 const router = express.Router();
-const db = require('../db');
-const { decode } = require('../utils/converter');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const axios = require('axios');
-const carddb = require('./carddb.json');
-const { contarRepeticoes } = require('../utils/decks')
-
-const getRowsByIds = (ids) => {
-  const dbPath = path.join(__dirname, 'OmegaDB.cdb');
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        reject('Erro ao conectar ao banco de dados: ' + err.message);
-      }
-    });
-
-    const placeholders = ids.map(() => '?').join(',');
-    const sql = `SELECT x.id, x.name FROM texts x WHERE id IN (${placeholders})`;
-
-    db.all(sql, ids, (err, rows) => {
-      if (err) {
-        reject('Erro ao executar a consulta: ' + err.message);
-      } else {
-        resolve(rows);
-      }
-    });
-
-
-    db.close();
-  });
-};
-
-const contarDecks = array => Object.keys(array.reduce((acc, { archetype }) => {
-  acc[archetype] = acc[archetype] ? acc[archetype] + 1 : 1;
-  return acc;
-}, {})).map(archetype => ({
-  archetype,
-  qtd: array.filter(item => item.archetype === archetype).length
-}));
-
-function unirArrays(...arrays) {
-  return arrays[0].map(item1 => {
-    const mergedItem = { ...item1 };
-    for (let i = 1; i < arrays.length; i++) {
-      const array = arrays[i];
-      const item2 = array.find(item => item.id === item1.id);
-
-      if (item2) {
-        Object.assign(mergedItem, item2);
-      }
-    }
-
-    return mergedItem;
-  });
-}
-
-const getData = (ids) => {
-  return carddb.filter(c => ids.includes(c.id))
-}
-
-const groupedArchetypes = (arr) => Object.values(
-  arr.reduce((acc, card) => {
-    const { archetype, qtd, cardIds } = card;
-    if (!acc[archetype]) {
-      acc[archetype] = { archetype, qtd: 0, cardIds };
-    }
-    acc[archetype].qtd += qtd;
-    return acc;
-  }, {})
-);
-
-function mostFrequentValue(arr) {
-  const count = {};
-
-  for (const num of arr) {
-    count[num] = (count[num] || 0) + 1;
-  }
-
-  let mostFrequent = null;
-  let maxCount = 0;
-
-  for (const [num, freq] of Object.entries(count)) {
-    if (freq > maxCount) {
-      mostFrequent = Number(num);
-      maxCount = freq;
-    }
-  }
-
-  return mostFrequent;
-}
-
-const convertTodeck = async (omegaCode) => {
-  const { passwords } = decode(omegaCode);
-  const deck = contarRepeticoes(passwords)
-  const deckNames = await getRowsByIds(deck.map(c => c.id))
-  const cardsInfo = getData(deckNames.map(c => c.id)).map(({ archetype, id }) => ({ archetype, id }))
-  const mostUsed = groupedArchetypes(unirArrays(deck, deckNames, cardsInfo).filter(c => c.archetype)).sort((a, b) => b.qtd - a.qtd)[0]
-  return {
-    ...mostUsed,
-    cardIds: cardsInfo.filter(c => c.archetype === mostUsed.archetype).slice(0, 3).map(c => c.id)
-  }
-}
+const db = await mysql.createPool({
+  host: 'game.duelistsunite.org',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: 'omega',
+});
 
 router.get('/', async (req, res) => {
   const { id } = req.query;
@@ -174,4 +82,4 @@ router.get('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
