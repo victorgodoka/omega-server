@@ -67,7 +67,7 @@ router.post('/', upload.single('duelistBanner'), async (req, res) => {
 
     const duelistBannerUrl = req.file.path;
      await db.query(
-      `INSERT INTO duelists (id, duelist_bio, duelist_favorite, duelist_banner_url)
+      `INSERT INTO website.duelists (id, duelist_bio, duelist_favorite, duelist_banner_url)
       VALUES (?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         duelist_bio = VALUES(duelist_bio),

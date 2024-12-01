@@ -115,3 +115,11 @@ export const convertTodeck = async (omegaCode) => {
     cardIds: cardsInfo.filter(c => c.archetype === mostUsed.archetype).slice(0, 3).map(c => c.id)
   }
 }
+
+export const getAvatarUrl = (id, avatar) => {
+  if (!avatar) return ""
+  if (avatar.startsWith('http')) return avatar
+  
+  const type = avatar.startsWith('a_') ? 'gif' : 'png'
+  return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${type}`
+}

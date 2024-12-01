@@ -2,12 +2,14 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import decks from './routes/decks.js';
+import deckerboxd from './routes/deckerboxd.js';
+import rankedDecks from './routes/rankedDecks.js';
 import duelist from './routes/duelist.js';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 const allowedOrigins = ['http://localhost:5173', 'https://tournament.duelistsunite.org', 'https://omega.victorgodoka.com.br']; // URLs permitidas
 
 app.use(express.json());
@@ -26,6 +28,9 @@ app.use(cors({
 app.get('/', (req, res) => res.send('Working as intended (I wish).'))
 app.use('/api/decks', decks)
 app.use('/api/duelist', duelist)
+app.use('/api/deckerboxd', deckerboxd)
+app.use('/api/ranked-decks', rankedDecks)
+
 app.use((err, req, res, next) => {
   console.log(process.env)
   console.error('Erro não tratado:', err);

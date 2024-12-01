@@ -97,7 +97,6 @@ export const decode = (code) => {
 
     // The last 4 bytes are the deck password
     const deckPassword = stream.splice(0, 4).reduce((acc, byte, index) => acc + (byte << (index * 8)), 0);
-
     return {
       mainSize,
       sideSize,
