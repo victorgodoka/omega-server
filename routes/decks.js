@@ -75,10 +75,10 @@ router.get('/', async (req, res) => {
       total: decks.map(c => c.qtd).reduce((b, a) => b + a, 0) 
     }
 
-    res.json({ mostUsedArchetypes, matchHistory: await Promise.all(result) });
+    res.json({ success: true, data: { mostUsedArchetypes, matchHistory: await Promise.all(result) }});
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
-    res.status(500).json({ mensagem: 'Erro no servidor.' });
+    res.status(500).json({ success: false, mensagem: 'Erro no servidor.' });
   }
 });
 

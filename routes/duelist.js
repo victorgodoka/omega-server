@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
     );
     
     if (!rows[0]) return res.status(200).json({ success: false, message: 'User not found' })
-    return res.status(200).json({ success: true, user: rows[0] })
+    return res.status(200).json({ success: true, data: rows[0] })
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
     return res.status(500).json({ success: false, ensagem: 'Servidor error.' });
