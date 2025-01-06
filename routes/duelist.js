@@ -57,8 +57,6 @@ router.get('/', async (req, res) => {
 
 router.post('/', upload.single('duelistBanner'), async (req, res) => {
   try {
-    console.log('Body:', req.body);
-    console.log('File:', req.file);
     const { id, duelistBio, duelistFavorite } = req.body;
 
     if (!id || !duelistBio || !req.file) {

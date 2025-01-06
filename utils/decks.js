@@ -1,4 +1,3 @@
-import { decode } from '../utils/converter.js'
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
 import path from 'path'
@@ -27,14 +26,14 @@ export const determineMatchWinner = (results) => {
   return -1; // Sem vencedor (empate ou incompleto)
 };
 
-export function contarRepeticoes(arr) {
+export function contarRepeticoes(arr, str) {
   const contador = {};
   arr.forEach(num => {
     contador[num] = (contador[num] || 0) + 1;
   });
 
   const resultado = Object.keys(contador).map(key => ({
-    id: parseInt(key),
+    id: str ? key : parseInt(key),
     qtd: contador[key]
   }));
 
@@ -70,6 +69,7 @@ export const getRowsByIds = (ids) => {
 };
 
 export const contarDecks = array => Object.keys(array.reduce((acc, { archetype }) => {
+  console.log(array)
   acc[archetype] = acc[archetype] ? acc[archetype] + 1 : 1;
   return acc;
 }, {})).map(archetype => ({
@@ -104,14 +104,15 @@ export const groupedArchetypes = (arr) => Object.values(
   }, {})
 );
 
-export const convertTodeck = async (omegaCode) => {
-  const { passwords } = decode(omegaCode);
+export const convertTodeck = async (passwords, all) => {
   const deck = contarRepeticoes(passwords)
   const deckNames = await getRowsByIds(deck.map(c => c.id))
   const cardsInfo = getData(deckNames.map(c => c.id)).map(({ archetype, id }) => ({ archetype, id }))
-  const mostUsed = groupedArchetypes(unirArrays(deck, deckNames, cardsInfo).filter(c => c.archetype)).sort((a, b) => b.qtd - a.qtd)[0]
+  const mostUsedAll = groupedArchetypes(unirArrays(deck, deckNames, cardsInfo).filter(c => c.archetype)).sort((a, b) => b.qtd - a.qtd)
+  const mostUsed = all ? mostUsedAll : mostUsedAll[0]
+
   return {
-    ...mostUsed,
+    mostUsed,
     cardIds: cardsInfo.filter(c => c.archetype === mostUsed.archetype).slice(0, 3).map(c => c.id)
   }
 }

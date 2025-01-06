@@ -1,4 +1,5 @@
 import express from 'express'
+import { decode } from '../utils/converter.js'
 import { convertTodeck, contarDecks } from '../utils/decks.js'
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
           user_discord_data u1 ON u1.discord_id = d.duelist1
       JOIN
           user_discord_data u2 ON u2.discord_id = d.duelist2
-       WHERE (duelist1 = ? OR duelist2 = ?) AND region = 1
+       WHERE (duelist1 = ? OR duelist2 = ?) AND region = 1 AND d.start >= '2024-08-01'
        GROUP BY duelist1, duelist2, deck1, deck2, start
        ORDER BY start DESC`,
       [id, id]
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
     const result = rows.slice(0, 10).map(async row => {
       const duelist = {
         id,
-        deck: row.duelist1 === id ? await convertTodeck(row.deck1) : await convertTodeck(row.deck2),
+        deck: row.duelist1 === id ? await convertTodeck(decode(row.deck1).passwords) : await convertTodeck(decode(row.deck2).passwords),
         discord: {
           username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
           avatar: row.duelist1 === id ? row.duelist1_avatar : row.duelist2_avatar,
@@ -47,7 +48,7 @@ router.get('/', async (req, res) => {
 
       const opponent = {
         id: row.duelist1 === id ? row.duelist2 : row.duelist1,
-        deck: row.duelist1 === id ? await convertTodeck(row.deck2) : await convertTodeck(row.deck1),
+        deck: row.duelist1 === id ? await convertTodeck(decode(row.deck2).passwords) : await convertTodeck(decode(row.deck1).passwords),
         discord: {
           username: row.duelist1 === id ? row.duelist2_username : row.duelist1_username,
           avatar: row.duelist1 === id ? row.duelist2_avatar : row.duelist1_avatar,
@@ -65,7 +66,7 @@ router.get('/', async (req, res) => {
     });
 
     const mostUsedDecks = rows.map(async row => {
-      const deck = row.duelist1 === id ? await convertTodeck(row.deck1) : await convertTodeck(row.deck2)
+      const deck = row.duelist1 === id ? (await convertTodeck(decode(row.deck1).passwords)).mostUsed : (await convertTodeck(decode(row.deck2).passwords)).mostUsed
       return deck
     })
 

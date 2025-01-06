@@ -5,6 +5,9 @@ import decks from './routes/decks.js';
 import deckerboxd from './routes/deckerboxd.js';
 import rankedDecks from './routes/rankedDecks.js';
 import duelist from './routes/duelist.js';
+import wrapped from './routes/wrapped.js';
+import leaderboard from './routes/leaderboard.js';
+import lastLogins from './routes/lastLogins.js';
 
 dotenv.config();
 
@@ -30,9 +33,11 @@ app.use('/api/decks', decks)
 app.use('/api/duelist', duelist)
 app.use('/api/deckerboxd', deckerboxd)
 app.use('/api/ranked-decks', rankedDecks)
+app.use('/api/wrapped', wrapped)
+app.use('/api/leaderboard', leaderboard)
+app.use('/api/lastlogins', lastLogins)
 
 app.use((err, req, res, next) => {
-  console.log(process.env)
   console.error('Erro não tratado:', err);
   res.status(500).json({ success: false, message: 'Erro interno do servidor.' });
 });
