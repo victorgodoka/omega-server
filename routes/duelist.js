@@ -48,10 +48,10 @@ router.get('/', async (req, res) => {
     );
     
     if (!rows[0]) return res.status(200).json({ success: false, message: 'User not found' })
-    return res.status(200).json({ success: true, data: rows[0] })
+    return res.status(200).json({ data: { success: true, ...rows[0] } })
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
-    return res.status(500).json({ success: false, ensagem: 'Servidor error.' });
+    return res.status(500).json({ success: false, mensagem: 'Servidor error.' });
   }
 })
 
@@ -75,9 +75,7 @@ router.post('/', upload.single('duelistBanner'), async (req, res) => {
     );
 
     res.status(201).json({
-      success: true,
-      message: 'Success!',
-      data: { id, duelistBio, duelistBannerUrl },
+      data: { success: true, id, duelistBio, duelistBannerUrl },
     });
   } catch (error) {
     console.error('Erro ao processar o formulário:', error);
