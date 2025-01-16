@@ -13,25 +13,28 @@ const db = await mysql.createPool({
   database: 'omega',
 });
 
+const LASTBANLIST = '2024-12-09'
+
 router.get('/', async (req, res) => {
   const { id } = req.query;
   try {
     const [rows] = await db.query(
-      `SELECT CAST(d.duelist1 AS CHAR) AS duelist1, CAST(d.duelist2 AS CHAR) AS duelist2, d.deck1, d.deck2, d.start, d.result, d.result1,d.result2,d.result3,
-        u1.username AS duelist1_username,
-        u1.avatar AS duelist1_avatar,
-        u1.displayname AS duelist1_displayname,
-        u2.username AS duelist2_username,
-        u2.avatar AS duelist2_avatar,
-        u2.displayname AS duelist2_displayname
-       FROM duel d
-      JOIN
-          user_discord_data u1 ON u1.discord_id = d.duelist1
-      JOIN
-          user_discord_data u2 ON u2.discord_id = d.duelist2
-       WHERE (duelist1 = ? OR duelist2 = ?) AND region = 1 AND d.start >= '2024-08-01'
-       GROUP BY duelist1, duelist2, deck1, deck2, start
-       ORDER BY start DESC`,
+      `  SELECT DISTINCT
+          d.duelist1,
+          d.duelist2,
+          (SELECT username FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_username,
+          (SELECT avatar FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_avatar,
+          (SELECT displayname FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_displayname,
+          (SELECT username FROM omega.user_discord_data u WHERE d.duelist2 = u.discord_id) AS duelist2_username,
+          (SELECT avatar FROM omega.user_discord_data u WHERE d.duelist2 = u.discord_id) AS duelist2_avatar,
+          (SELECT displayname FROM omega.user_discord_data u WHERE d.duelist2 = u.discord_id) AS duelist2_displayname,
+          d.deck1,
+          d.deck2,
+          d.start AS s_date,
+          d.end AS e_date
+        FROM omega.duel d
+        WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start > '${LASTBANLIST}'
+        ORDER BY d.start DESC;`,
       [id, id]
     );
 
@@ -57,12 +60,11 @@ router.get('/', async (req, res) => {
       };
 
       // const result = mostFrequentValue([row.result1, row.result2, row.result3].filter(n => n >= 0))
-      const result = row.result
-      const winner = (result === 0 ? row.duelist1 : result === 1 ? row.duelist2 : false)
-      const isWinner = winner === id
-      const isDraw = result === 2
+      const winner = row.duelist1
+      const isWinner = row.duelist1 === id
+      const isDraw = false
 
-      return { duelist, opponent, result, winner, isWinner, isDraw, start: row.start };
+      return { duelist, opponent, winner, isWinner, isDraw, start: row.start };
     });
 
     const mostUsedDecks = rows.map(async row => {

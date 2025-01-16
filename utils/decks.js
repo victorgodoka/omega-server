@@ -2,12 +2,13 @@ import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
 import path from 'path'
 import carddb from './carddb.js'
+import db from './db.js';
 
 sqlite3.verbose();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const getData = (ids) => {
+export const getData = (ids) => {
   return carddb.filter(c => ids.includes(c.id))
 }
 
@@ -69,7 +70,6 @@ export const getRowsByIds = (ids) => {
 };
 
 export const contarDecks = array => Object.keys(array.reduce((acc, { archetype }) => {
-  console.log(array)
   acc[archetype] = acc[archetype] ? acc[archetype] + 1 : 1;
   return acc;
 }, {})).map(archetype => ({
@@ -123,4 +123,50 @@ export const getAvatarUrl = (id, avatar) => {
   
   const type = avatar.startsWith('a_') ? 'gif' : 'png'
   return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${type}`
+}
+
+export const getTopDecks = async (pageSize, offset) => {
+  const query = `
+WITH deck_users AS (
+  SELECT
+    deck1 AS deck,
+    duelist1 AS user
+  FROM omega.duel
+  WHERE start > '2024-12-09'
+  UNION ALL
+  SELECT
+    deck2 AS deck,
+    duelist2 AS user
+  FROM omega.duel
+  WHERE start > '2024-12-09'
+),
+deck_stats AS (
+  SELECT
+    deck_name,
+    SUM(CASE WHEN result = 0 THEN 1 ELSE 0 END) AS wins,
+    SUM(CASE WHEN result = 1 THEN 1 ELSE 0 END) AS losses,
+    COUNT(DISTINCT user) AS users
+  FROM (
+    SELECT deck1 AS deck_name, duelist1 AS user, result
+    FROM omega.duel
+    WHERE start > '2024-12-09'
+    UNION ALL
+    SELECT deck2 AS deck_name, duelist2 AS user, 1 - result AS result
+    FROM omega.duel
+    WHERE start > '2024-12-09'
+  ) AS all_decks
+  GROUP BY deck_name
+)
+SELECT
+  deck_name AS deck,
+  wins,
+  losses,
+  users
+FROM deck_stats
+ORDER BY wins DESC, losses ASC, users DESC
+LIMIT ? OFFSET ?;
+`;
+
+  const [rows] = await db.execute(query, [pageSize, offset]);
+  return rows
 }

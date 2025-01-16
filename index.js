@@ -8,6 +8,7 @@ import duelist from './routes/duelist.js';
 import wrapped from './routes/wrapped.js';
 import leaderboard from './routes/leaderboard.js';
 import lastLogins from './routes/lastLogins.js';
+import deckdata from './routes/deckdata.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/ranked-decks', rankedDecks)
 app.use('/api/wrapped', wrapped)
 app.use('/api/leaderboard', leaderboard)
 app.use('/api/lastlogins', lastLogins)
+app.use('/api/deckdata', deckdata)
 
 app.use((err, req, res, next) => {
   console.error('Erro não tratado:', err);
