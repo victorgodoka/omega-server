@@ -20,8 +20,8 @@ router.get('/', async (req, res) => {
   try {
     const [rows] = await db.query(
       `  SELECT DISTINCT
-          d.duelist1,
-          d.duelist2,
+          CAST (d.duelist1 AS CHAR) as duelist1,
+          CAST (d.duelist2 AS CHAR) as duelist2,
           (SELECT username FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_username,
           (SELECT avatar FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_avatar,
           (SELECT displayname FROM omega.user_discord_data u WHERE d.duelist1 = u.discord_id) AS duelist1_displayname,
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 
     const result = rows.slice(0, 10).map(async row => {
       const duelist = {
-        id,
+        id: row.duelist1 === id ? row.duelist1 : row.duelist2,
         deck: row.duelist1 === id ? await convertTodeck(decode(row.deck1).passwords) : await convertTodeck(decode(row.deck2).passwords),
         discord: {
           username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
