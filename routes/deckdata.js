@@ -6,7 +6,7 @@ import { contarRepeticoes, getData } from '../utils/decks.js';
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const top = parseInt(req.query.top) || 25;
+  const top = parseInt(req.query.top) || 16;
 
   const start = Date.now();
   try {
@@ -45,8 +45,10 @@ router.get('/', async (req, res) => {
     const duration = (Date.now() - start) / 1000;
     res.status(200).json({
       duration: `${duration.toFixed(2)} seconds`,
-      data: topData,
-      totalDecks: rows.length
+      data: {
+        topData,
+        totalDecks: rows.length
+      }
     });
 
   } catch (error) {

@@ -2,6 +2,7 @@ import express from 'express'
 import { decode } from '../utils/converter.js'
 import { convertTodeck, contarDecks } from '../utils/decks.js'
 import mysql from 'mysql2/promise';
+import moment from "moment";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -33,15 +34,20 @@ router.get('/', async (req, res) => {
           d.start,
           d.end
         FROM omega.duel d
-        WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start > '${LASTBANLIST}'
+        WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start > '${LASTBANLIST} AND d.region = 1'
         ORDER BY d.start DESC;`,
       [id, id]
     );
 
-    const result = rows.slice(0, 10).map(async row => {
+    const getDeck = async (deck) => {
+      const { cardIds, mostUsed: { archetype }} = await convertTodeck(decode(deck).passwords)
+      return { cardIds, archetype }
+    }
+
+    const result = rows.map(async row => {
       const duelist = {
         id: row.duelist1 === id ? row.duelist1 : row.duelist2,
-        deck: row.duelist1 === id ? await convertTodeck(decode(row.deck1).passwords) : await convertTodeck(decode(row.deck2).passwords),
+        deck: row.duelist1 === id ? await getDeck(row.deck1) : await getDeck(row.deck2),
         discord: {
           username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
           avatar: row.duelist1 === id ? row.duelist1_avatar : row.duelist2_avatar,
@@ -51,7 +57,7 @@ router.get('/', async (req, res) => {
 
       const opponent = {
         id: row.duelist1 === id ? row.duelist2 : row.duelist1,
-        deck: row.duelist1 === id ? await convertTodeck(decode(row.deck2).passwords) : await convertTodeck(decode(row.deck1).passwords),
+        deck: row.duelist1 === id ? await getDeck(row.deck2) : await getDeck(row.deck1),
         discord: {
           username: row.duelist1 === id ? row.duelist2_username : row.duelist1_username,
           avatar: row.duelist1 === id ? row.duelist2_avatar : row.duelist1_avatar,
@@ -78,7 +84,19 @@ router.get('/', async (req, res) => {
       total: decks.map(c => c.qtd).reduce((b, a) => b + a, 0) 
     }
 
-    res.json({ success: true, data: { mostUsedArchetypes, matchHistory: await Promise.all(result) }});
+    const matchHistory = await Promise.all(result)
+    const eventos = matchHistory.map(({ start, end }) => ({ inicio: start, fim: end }))
+
+    // Inicializa a duração total
+    let duracaoTotal = moment.duration(0);
+
+    eventos.forEach(evento => {
+      const inicio = moment(evento.inicio);
+      const fim = moment(evento.fim);
+      duracaoTotal += fim.diff(inicio, "ms");
+    });
+
+    res.json({ success: true, data: { totalGaming: moment.utc(duracaoTotal).format("HH[h] mm[m]"), mostUsedArchetypes, matchHistory,  }});
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
     res.status(500).json({ success: false, mensagem: 'Erro no servidor.' });
