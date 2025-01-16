@@ -30,8 +30,8 @@ router.get('/', async (req, res) => {
           (SELECT displayname FROM omega.user_discord_data u WHERE d.duelist2 = u.discord_id) AS duelist2_displayname,
           d.deck1,
           d.deck2,
-          d.start AS s_date,
-          d.end AS e_date
+          d.start,
+          d.end
         FROM omega.duel d
         WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start > '${LASTBANLIST}'
         ORDER BY d.start DESC;`,
@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
       const isWinner = row.duelist1 === id
       const isDraw = false
 
-      return { duelist, opponent, winner, isWinner, isDraw, start: row.start };
+      return { duelist, opponent, winner, isWinner, isDraw, start: row.start, end: row.end };
     });
 
     const mostUsedDecks = rows.map(async row => {
