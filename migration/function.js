@@ -1,17 +1,7 @@
 import mysql from 'mysql2';
 import dotenv from 'dotenv';
-import { GraphQLClient } from 'graphql-request';
+import { graphQLClient } from '../utils/db.js'
 dotenv.config();
-
-// URL da API GraphQL do Hasura
-const hasuraUrl = 'http://localhost:8080/v1/graphql';
-
-// Criação do cliente GraphQL
-const graphQLClient = new GraphQLClient(hasuraUrl, {
-  headers: {
-    'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET, // Substitua com a chave secreta do Hasura
-  },
-});
 
 // Conectar ao MySQL
 const mysqlConnection = mysql.createConnection({
@@ -188,6 +178,191 @@ export const migrateData = async () => {
 
         await graphQLClient.request(insertQuery, insertVariables);
         console.log(`Dado com id ${row.id} inserido com sucesso!`);
+      }
+    }
+  });
+
+  mysqlConnection.query('SELECT * FROM user', async (err, results) => {
+    if (err) {
+      console.error('Erro ao buscar dados do MySQL:', err);
+      return;
+    }
+
+    for (const row of results) {
+      // Verificar se o dado já existe no PostgreSQL via GraphQL
+      const checkQuery = `
+        query checkUser($id: bigint!) {
+          user_by_pk(id: $id) {
+            id
+          }
+        }
+      `;
+      const checkVariables = { id: row.id };
+
+      const checkResponse = await graphQLClient.request(checkQuery, checkVariables);
+
+      if (checkResponse.user_by_pk) {
+        // Atualizar dados existentes no PostgreSQL via GraphQL
+        const updateQuery = `
+          mutation updateUser(
+            $id: bigint!,
+            $unban: timestamptz,
+            $duelpoints: smallint,
+            $tournamentpoints: smallint,
+            $accountrank: smallint,
+            $tcgwins: smallint,
+            $ocgwins: smallint,
+            $tcgloses: smallint,
+            $ocgloses: smallint,
+            $tcgdraws: smallint,
+            $ocgdraws: smallint,
+            $tcgrating: float8,
+            $ocgrating: float8,
+            $flags: smallint,
+            $lastlogin: timestamptz,
+            $passduedate: timestamptz,
+            $unmute: timestamptz,
+            $tcgwinstreak: Int,
+            $tcglosestreak: Int,
+            $ocgwinstreak: Int,
+            $ocglosestreak: Int
+          ) {
+            update_user(
+              where: { id: { _eq: $id } },
+              _set: {
+                unban: $unban,
+                duelpoints: $duelpoints,
+                tournamentpoints: $tournamentpoints,
+                accountrank: $accountrank,
+                tcgwins: $tcgwins,
+                ocgwins: $ocgwins,
+                tcgloses: $tcgloses,
+                ocgloses: $ocgloses,
+                tcgdraws: $tcgdraws,
+                ocgdraws: $ocgdraws,
+                tcgrating: $tcgrating,
+                ocgrating: $ocgrating,
+                flags: $flags,
+                lastlogin: $lastlogin,
+                passduedate: $passduedate,
+                unmute: $unmute,
+                tcgwinstreak: $tcgwinstreak,
+                tcglosestreak: $tcglosestreak,
+                ocgwinstreak: $ocgwinstreak,
+                ocglosestreak: $ocglosestreak
+              }
+            ) {
+              affected_rows
+            }
+          }
+        `;
+        const updateVariables = {
+          id: row.id,
+          unban: row.unban,
+          duelpoints: row.duelpoints,
+          tournamentpoints: row.tournamentpoints,
+          accountrank: row.accountrank,
+          tcgwins: row.tcgwins,
+          ocgwins: row.ocgwins,
+          tcgloses: row.tcgloses,
+          ocgloses: row.ocgloses,
+          tcgdraws: row.tcgdraws,
+          ocgdraws: row.ocgdraws,
+          tcgrating: row.tcgrating,
+          ocgrating: row.ocgrating,
+          flags: row.flags,
+          lastlogin: row.lastlogin,
+          passduedate: row.passduedate,
+          unmute: row.unmute,
+          tcgwinstreak: row.tcgwinstreak,
+          tcglosestreak: row.tcglosestreak,
+          ocgwinstreak: row.ocgwinstreak,
+          ocglosestreak: row.ocglosestreak,
+        };
+
+        await graphQLClient.request(updateQuery, updateVariables);
+        console.log(`Usuário ${row.id} atualizado com sucesso!`);
+      } else {
+        // Inserir dados novos no PostgreSQL via GraphQL
+        const insertQuery = `
+          mutation insertUser(
+            $id: bigint!,
+            $unban: timestamptz,
+            $duelpoints: smallint,
+            $tournamentpoints: smallint,
+            $accountrank: smallint,
+            $tcgwins: smallint,
+            $ocgwins: smallint,
+            $tcgloses: smallint,
+            $ocgloses: smallint,
+            $tcgdraws: smallint,
+            $ocgdraws: smallint,
+            $tcgrating: float8,
+            $ocgrating: float8,
+            $flags: smallint,
+            $lastlogin: timestamptz,
+            $passduedate: timestamptz,
+            $unmute: timestamptz,
+            $tcgwinstreak: smallint,
+            $tcglosestreak: smallint,
+            $ocgwinstreak: smallint,
+            $ocglosestreak: smallint
+          ) {
+            insert_user(objects: {
+              id: $id,
+              unban: $unban,
+              duelpoints: $duelpoints,
+              tournamentpoints: $tournamentpoints,
+              accountrank: $accountrank,
+              tcgwins: $tcgwins,
+              ocgwins: $ocgwins,
+              tcgloses: $tcgloses,
+              ocgloses: $ocgloses,
+              tcgdraws: $tcgdraws,
+              ocgdraws: $ocgdraws,
+              tcgrating: $tcgrating,
+              ocgrating: $ocgrating,
+              flags: $flags,
+              lastlogin: $lastlogin,
+              passduedate: $passduedate,
+              unmute: $unmute,
+              tcgwinstreak: $tcgwinstreak,
+              tcglosestreak: $tcglosestreak,
+              ocgwinstreak: $ocgwinstreak,
+              ocglosestreak: $ocglosestreak
+            }) {
+              returning {
+                id
+              }
+            }
+          }
+        `;
+        const insertVariables = {
+          id: row.id,
+          unban: row.unban,
+          duelpoints: row.duelpoints,
+          tournamentpoints: row.tournamentpoints,
+          accountrank: row.accountrank,
+          tcgwins: row.tcgwins,
+          ocgwins: row.ocgwins,
+          tcgloses: row.tcgloses,
+          ocgloses: row.ocgloses,
+          tcgdraws: row.tcgdraws,
+          ocgdraws: row.ocgdraws,
+          tcgrating: row.tcgrating,
+          ocgrating: row.ocgrating,
+          flags: row.flags,
+          lastlogin: row.lastlogin,
+          passduedate: row.passduedate,
+          unmute: row.unmute,
+          tcgwinstreak: row.tcgwinstreak,
+          tcglosestreak: row.tcglosestreak,
+          ocgwinstreak: row.ocgwinstreak,
+          ocglosestreak: row.ocglosestreak,
+        };
+
+        await graphQLClient.request(insertQuery, insertVariables);
+        console.log(`Usuário ${row.id} inserido com sucesso!`);
       }
     }
   });
