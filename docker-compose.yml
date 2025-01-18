@@ -7,3 +7,56 @@ services:
     restart: always
     env_file:
       - .env
+    depends_on:
+      - postgres
+      - hasura
+    volumes:
+      - .:/app
+    networks:
+      - backend
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+      POSTGRES_DB: omega
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  hasura:
+    image: hasura/graphql-engine:latest
+    container_name: hasura
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASS}@postgres:5432/omega
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+    networks:
+      - backend
+
+  migration:
+    build: .
+    container_name: omega-migration
+    command: node migration/index.js
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,6 +1,6 @@
 import express from 'express'
 import { decode } from '../utils/converter.js'
-import { convertTodeck, contarDecks } from '../utils/decks.js'
+import { convertTodeck } from '../utils/decks.js'
 import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
@@ -13,6 +13,28 @@ const db = await mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: 'omega',
 });
+
+const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
+  // Encontra o objeto correspondente ao deck
+  const existingDeck = acc.find(item => item.deck === deck);
+
+  if (existingDeck) {
+    // Atualiza os valores de wins e losses
+    if (win) existingDeck.wins++;
+    if (loss) existingDeck.loss++;
+    existingDeck.total++;
+  } else {
+    // Se não existir, cria um novo objeto para o deck
+    acc.push({
+      deck,
+      wins: win ? 1 : 0,
+      loss: loss ? 1 : 0,
+      total: 1,
+    });
+  }
+
+  return acc;
+}, []).sort((b, a) => a.total - b.total);
 
 const LASTBANLIST = '2024-12-09'
 
@@ -73,17 +95,6 @@ router.get('/', async (req, res) => {
       return { duelist, opponent, winner, isWinner, isDraw, start: row.start, end: row.end };
     });
 
-    const mostUsedDecks = rows.map(async row => {
-      const deck = row.duelist1 === id ? (await convertTodeck(decode(row.deck1).passwords)).mostUsed : (await convertTodeck(decode(row.deck2).passwords)).mostUsed
-      return deck
-    })
-
-    const decks = contarDecks(await Promise.all(mostUsedDecks)).sort((a, b) => b.qtd - a.qtd)
-    const mostUsedArchetypes = {
-      decks,
-      total: decks.map(c => c.qtd).reduce((b, a) => b + a, 0) 
-    }
-
     const matchHistory = await Promise.all(result)
     const eventos = matchHistory.map(({ start, end }) => ({ inicio: start, fim: end }))
 
@@ -96,7 +107,12 @@ router.get('/', async (req, res) => {
       duracaoTotal += fim.diff(inicio, "ms");
     });
 
-    res.json({ success: true, data: { totalGaming: moment.utc(duracaoTotal).format("HH[h] mm[m]"), mostUsedArchetypes, matchHistory,  }});
+    const onlyOpponentDecks = matchHistory.map(({ opponent, isWinner }) => ({ deck: opponent.deck.archetype, win: isWinner, loss: !isWinner }))
+    const onlyDuelistDecks = matchHistory.map(({ duelist, isWinner }) => ({ deck: duelist.deck.archetype, win: isWinner, loss: !isWinner }))
+    const opponentDecks = getFinalData(onlyOpponentDecks)
+    const mostUsedArchetypes = getFinalData(onlyDuelistDecks)
+
+    res.json({ success: true, data: { opponentDecks, totalGaming: moment.utc(duracaoTotal).format("HH[h] mm[m]"), mostUsedArchetypes, matchHistory,  }});
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
     res.status(500).json({ success: false, mensagem: 'Erro no servidor.' });
