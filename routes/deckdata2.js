@@ -1,7 +1,29 @@
 import express from 'express';
-import { getAllDecks } from '../utils/deckdata.js';
 import { decode } from '../utils/converter.js';
 import { contarRepeticoes, getData } from '../utils/decks.js';
+import axios from 'axios';
+
+const fetchDecks = async () => {
+  const url = 'http://localhost:8080/api/rest/decks';
+
+  try {
+    // Faz a requisição e armazena a resposta
+    const response = await axios.get(url, {
+      headers: {
+        'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET,
+      },
+    });
+
+    // Armazena os dados na variável
+    const decks = response.data;
+
+    // Retorna os decks para uso
+    return decks;
+  } catch (error) {
+    console.error('Erro ao buscar decks:', error.response?.data || error.message);
+    throw error; // Relança o erro caso precise tratá-lo em outro lugar
+  }
+};
 
 const router = express.Router();
 
@@ -10,7 +32,7 @@ router.get('/', async (req, res) => {
 
   const start = Date.now();
   try {
-    const rows = await getAllDecks()
+    const { distinct_decks: rows } = await fetchDecks()
     const decks = rows.map(({ deck }) => {
       const { passwords, sideSize } = decode(deck)
 
@@ -52,6 +74,7 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
+    const duration = (Date.now() - start) / 1000;
     res.status(500).json({ duration: `${duration.toFixed(2)} seconds`, error: error.message });
   }
 });
