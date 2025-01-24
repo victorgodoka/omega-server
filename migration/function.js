@@ -222,10 +222,10 @@ export const migrateData = async () => {
             $lastlogin: timestamptz,
             $passduedate: timestamptz,
             $unmute: timestamptz,
-            $tcgwinstreak: Int,
-            $tcglosestreak: Int,
-            $ocgwinstreak: Int,
-            $ocglosestreak: Int
+            $tcgwinstreak: smallint,
+            $tcglosestreak: smallint,
+            $ocgwinstreak: smallint,
+            $ocglosestreak: smallint
           ) {
             update_user(
               where: { id: { _eq: $id } },
