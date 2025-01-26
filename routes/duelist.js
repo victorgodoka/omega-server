@@ -59,19 +59,19 @@ router.post('/', upload.single('duelistBanner'), async (req, res) => {
   try {
     const { id, duelistBio, duelistFavorite } = req.body;
 
-    if (!id || !duelistBio || !req.file) {
+    if (!id) {
       return res.status(400).json({ success: false, message: 'Todos os campos são obrigatórios.' });
     }
 
-    const duelistBannerUrl = req.file.path;
+    const duelistBannerUrl = req.file?.path;
      await db.query(
       `INSERT INTO website.duelists (id, duelist_bio, duelist_favorite, duelist_banner_url)
       VALUES (?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         duelist_bio = VALUES(duelist_bio),
-        duelist_favorite = VALUES(duelist_favorite),
-        duelist_banner_url = VALUES(duelist_banner_url)`,
-       [id, duelistBio, duelistFavorite || null, duelistBannerUrl]
+        duelist_favorite = VALUES(duelist_favorite)
+        ${duelistBannerUrl ? `, duelist_banner_url = VALUES(duelist_banner_url)` : ''}`,
+       [id, duelistBio, duelistFavorite || null, duelistBannerUrl || null]
     );
 
     res.status(201).json({

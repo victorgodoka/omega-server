@@ -1,6 +1,4 @@
-import { fileURLToPath } from 'url';
 import { decode } from '../utils/converter.js';
-import path from 'path'
 import express from 'express';
 import sqlite3 from 'sqlite3';
 sqlite3.verbose();
@@ -30,7 +28,7 @@ router.get('/', async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Decks fetched successfully.',
-      data: {...deck, passwords: deck.passwords.map(c => data.find(id => id === c)?.alias || c)}
+      data: {...deck, passwords: deck.passwords.map(c => data.find(({ id }) => id === c)?.alias || c)}
     });
 
   } catch (error) {
