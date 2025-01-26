@@ -4,7 +4,6 @@ import path from 'path'
 import carddb from './carddb.js'
 import db from './db.js';
 
-sqlite3.verbose();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

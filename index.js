@@ -10,6 +10,7 @@ import lastLogins from './routes/lastLogins.js';
 import deckdata from './routes/deckdata.js';
 import deckdata2 from './routes/deckdata2.js';
 import tournaments from './routes/tournaments.js';
+import convert from './routes/convert.js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use('/api/leaderboard', leaderboard)
 app.use('/api/lastlogins', lastLogins)
 app.use('/api/deckdata', deckdata)
 app.use('/api/tournaments', tournaments)
+app.use('/api/convert', convert)
 app.use('/api/v2/deckdata', deckdata2)
 
 app.use((err, req, res, next) => {
