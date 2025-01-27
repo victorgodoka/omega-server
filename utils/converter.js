@@ -1,57 +1,6 @@
-import zlib from 'zlib';
-import { Buffer } from 'buffer';
-
-class InvalidMainSize extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'InvalidMainSize';
-  }
-}
-
-class InvalidSideSize extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'InvalidSideSize';
-  }
-}
-
-class SizeMismatch extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'SizeMismatch';
-  }
-}
-
-class InvalidDeckCode extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'InvalidDeckCode';
-  }
-}
+import zlib from 'zlib'
 
 export const encode = (mainSize, sideSize, passwords, deckPassword = null) => {
-  const sizeError = (type, start, end, error, plural) => {
-    return `The ${type} deck must contain ${start} to ${end} cards, not ${error} card${plural}`;
-  };
-
-  if (mainSize < 40 || mainSize > 60) {
-    throw new InvalidMainSize(
-      sizeError('main', 40, 60, mainSize, mainSize !== 1 ? 's' : '')
-    );
-  }
-
-  if (sideSize < 0 || sideSize > 15) {
-    throw new InvalidSideSize(
-      sizeError('side', 0, 15, sideSize, 's')
-    );
-  }
-
-  if (mainSize + sideSize !== passwords.length) {
-    throw new SizeMismatch(
-      `The combined length of the main and side decks do not match that of the passwords, ${mainSize} + ${sideSize} ≠ ${passwords.length}`
-    );
-  }
-
   const stream = [];
 
   // Writing main and side deck sizes
@@ -65,17 +14,27 @@ export const encode = (mainSize, sideSize, passwords, deckPassword = null) => {
 
   // Adding each password (as 4-byte integers)
   passwords.forEach(password => {
-    stream.push(Buffer.alloc(4).writeUInt32LE(password, 0));
+    const buffer = Buffer.alloc(4);
+    buffer.writeUInt32LE(password, 0);
+    stream.push(buffer);
   });
 
+  // Concatenate all buffers into a single buffer
   const buffer = Buffer.concat(stream);
 
-  // Compressing the data
-  const deflate = zlib.createDeflateRaw({ level: 9 });
-  const compressed = deflate.update(buffer);
-  deflate.end();
+  try {
+    // Compressing the data using deflateRawSync
+    const compressed = zlib.deflateRawSync(buffer, { level: 9 });
 
-  return compressed.toString('base64');
+    // Log compressed buffer for debugging
+    console.log('Compressed buffer:', compressed);
+
+    // Return as Base64 string
+    return compressed.toString('base64');
+  } catch (error) {
+    console.error('Compression error:', error);
+    throw error; // Re-throw the error for further debugging
+  }
 };
 
 export const decode = (code) => {
