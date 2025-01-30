@@ -5,6 +5,7 @@ import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
 import { LASTBANLIST } from '../index.js';
+import { archetypeLib, decodeDeck } from '../utils/setcodes.js';
 dotenv.config();
 
 const router = express.Router();
@@ -16,6 +17,7 @@ const db = await mysql.createPool({
 });
 
 const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
+  // console.log(arr)
   // Encontra o objeto correspondente ao deck
   const existingDeck = acc.find(item => item.deck === deck);
 
@@ -61,14 +63,36 @@ router.get('/', async (req, res) => {
     );
 
     const getDeck = async (deck) => {
-      const { cardIds, mostUsed: { archetype }} = await convertTodeck(decode(deck).passwords)
-      return { cardIds, archetype }
+      const { mainSize, passwords } = decode(deck)
+      const sets = await decodeDeck(passwords.slice(0, mainSize))
+      const count = sets.reduce((acc, card) => {
+        acc[card.set] = (acc[card.set] || 0) + 1;
+        return acc;
+      }, {})
+
+      const archetypesPure = Object.entries(count)
+        .sort((a, b) => b[1] - a[1])
+        .map(([set, count]) => ({ ...archetypeLib.find(a => a.archetype.toLowerCase() === set.toLowerCase()), qtd: count,  }))
+        
+      const archetypes = archetypesPure.filter(c => c.hasOwnProperty('archetype') & c.qtd >= ((archetypesPure[0].qtd / mainSize) / 2 * mainSize))
+      if (archetypes.length > 0) {
+        return archetypes
+      } else {
+        return archetypesPure.filter(c => c.hasOwnProperty('archetype'))
+      }
+    }
+
+    const getCardIds = (arr) => {
+      return arr.map(c => c.ids).flat().sort(() => Math.random() - 0.5).slice(0, 3)
     }
 
     const result = rows.map(async row => {
+      const sideA = await getDeck(row.deck1)
+      const sideB = await getDeck(row.deck2)
       const duelist = {
         id: row.duelist1 === id ? row.duelist1 : row.duelist2,
-        deck: row.duelist1 === id ? await getDeck(row.deck1) : await getDeck(row.deck2),
+        deck: row.duelist1 === id ? sideA : sideB,
+        ids: row.duelist1 === id ? getCardIds(sideA) : getCardIds(sideB),
         discord: {
           username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
           avatar: row.duelist1 === id ? row.duelist1_avatar : row.duelist2_avatar,
@@ -78,7 +102,8 @@ router.get('/', async (req, res) => {
 
       const opponent = {
         id: row.duelist1 === id ? row.duelist2 : row.duelist1,
-        deck: row.duelist1 === id ? await getDeck(row.deck2) : await getDeck(row.deck1),
+        deck: row.duelist1 === id ? sideB : sideA,
+        ids: row.duelist1 === id ? getCardIds(sideB) : getCardIds(sideA),
         discord: {
           username: row.duelist1 === id ? row.duelist2_username : row.duelist1_username,
           avatar: row.duelist1 === id ? row.duelist2_avatar : row.duelist1_avatar,
@@ -106,8 +131,8 @@ router.get('/', async (req, res) => {
       duracaoTotal += fim.diff(inicio, "ms");
     });
 
-    const onlyOpponentDecks = matchHistory.map(({ opponent, isWinner }) => ({ deck: opponent.deck.archetype, win: isWinner, loss: !isWinner }))
-    const onlyDuelistDecks = matchHistory.map(({ duelist, isWinner }) => ({ deck: duelist.deck.archetype, win: isWinner, loss: !isWinner }))
+    const onlyOpponentDecks = matchHistory.map(({ opponent, isWinner }) => ({ deck: opponent.deck[0].archetype, win: isWinner, loss: !isWinner }))
+    const onlyDuelistDecks = matchHistory.map(({ duelist, isWinner }) => ({ deck: duelist.deck[0].archetype, win: isWinner, loss: !isWinner }))
     const opponentDecks = getFinalData(onlyOpponentDecks)
     const mostUsedArchetypes = getFinalData(onlyDuelistDecks)
 
