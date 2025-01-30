@@ -10,8 +10,8 @@ router.get('/', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Decks fetched successfully.',
-      data: { TCG, OCG }
+      message: 'Leaderboard fetched successfully.',
+      data: { TCG: TCG.map(r => ({ ...r, ot: 'TCG' })), OCG: OCG.map(r => ({ ...r, ot: 'OCG' })) }
     });
 
   } catch (error) {

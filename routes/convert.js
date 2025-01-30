@@ -1,8 +1,7 @@
 import { decode, encode } from '../utils/converter.js';
 import express from 'express';
-import sqlite3 from 'sqlite3';
+import { decodeDeck } from '../utils/setcodes.js';
 import * as ydke from "ydke";
-sqlite3.verbose();
 
 const router = express.Router();
 
@@ -11,25 +10,14 @@ router.get('/', async (req, res) => {
     const { code } = req.query
     const deck = decode(code)
 
-    const db = new sqlite3.Database("./omega.db", (err) => {
-      if (err) {
-        reject('Erro ao conectar ao banco de dados: ' + err.message);
-      }
-    });
-
-    const sql = `SELECT x.id, x.alias FROM datas x WHERE id IN (${deck.passwords.join(',')})`;
-
-    const data = await (new Promise((resolve, reject) => {
-      db.all(sql, [], (err, rows) => {
-        if (err) reject(err);
-        resolve(rows);
-      });
-    }));
-
     res.status(200).json({
       success: true,
       message: 'Decks fetched successfully.',
-      data: {...deck, passwords: deck.passwords.map(c => data.find(({ id }) => id === c)?.alias || c)}
+      data: {
+        ...deck, 
+        passwords: deck.passwords,
+        setcodes: await decodeDeck(deck.passwords)
+      }
     });
 
   } catch (error) {
@@ -46,10 +34,10 @@ router.post('/', async (req, res) => {
     const { mainSize, sideSize, passwords, main, extra, side } = req.body
 
     const ydkeCode = ydke.toURL({
-        main: Uint32Array.from(main),
-        extra: Uint32Array.from(extra),
-        side: Uint32Array.from(side),
-      });
+      main: Uint32Array.from(main),
+      extra: Uint32Array.from(extra),
+      side: Uint32Array.from(side),
+    });
 
     const omegaCode = encode(mainSize, sideSize, passwords)
 

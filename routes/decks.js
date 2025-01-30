@@ -4,6 +4,7 @@ import { convertTodeck } from '../utils/decks.js'
 import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
+import { LASTBANLIST } from '../index.js';
 dotenv.config();
 
 const router = express.Router();
@@ -36,8 +37,6 @@ const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
   return acc;
 }, []).sort((b, a) => a.total - b.total);
 
-const LASTBANLIST = '2024-12-09'
-
 router.get('/', async (req, res) => {
   const { id } = req.query;
   try {
@@ -56,7 +55,7 @@ router.get('/', async (req, res) => {
           d.start,
           d.end
         FROM omega.duel d
-        WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start > '${LASTBANLIST} AND d.region = 1'
+        WHERE (d.duelist1 IN (${id}) OR d.duelist2 IN (${id})) AND d.start >= '${LASTBANLIST}' AND d.region = 1
         ORDER BY d.start DESC;`,
       [id, id]
     );

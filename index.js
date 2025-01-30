@@ -54,3 +54,5 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
+
+export const LASTBANLIST = '2024-12-09'

@@ -3,10 +3,10 @@ import db from './db.js';
 export const getLastLogins = async (ot) => {
   const query = `
     SELECT
-        DATE(DATE(CONVERT_TZ(lastlogin, @@session.time_zone, @@global.time_zone))) AS dia,
-        COUNT(*) AS count
+        DATE(DATE(CONVERT_TZ(date, @@session.time_zone, @@global.time_zone))) AS dia,
+        unique_logins AS count
     FROM
-        omega.user
+        omega.usage_stats
     GROUP BY
         dia;
   `;
