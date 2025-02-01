@@ -1,11 +1,9 @@
 import express from 'express'
-import { decode } from '../utils/converter.js'
-import { convertTodeck } from '../utils/decks.js'
 import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
 import { LASTBANLIST } from '../index.js';
-import { archetypeLib, decodeDeck } from '../utils/setcodes.js';
+import { getDeck } from '../utils/decks.js';
 dotenv.config();
 
 const router = express.Router();
@@ -61,26 +59,6 @@ router.get('/', async (req, res) => {
         ORDER BY d.start DESC;`,
       [id, id]
     );
-
-    const getDeck = async (deck) => {
-      const { mainSize, passwords } = decode(deck)
-      const sets = await decodeDeck(passwords.slice(0, mainSize))
-      const count = sets.reduce((acc, card) => {
-        acc[card.set] = (acc[card.set] || 0) + 1;
-        return acc;
-      }, {})
-
-      const archetypesPure = Object.entries(count)
-        .sort((a, b) => b[1] - a[1])
-        .map(([set, count]) => ({ ...archetypeLib.find(a => a.archetype.toLowerCase() === set.toLowerCase()), qtd: count,  }))
-        
-      const archetypes = archetypesPure.filter(c => c.hasOwnProperty('archetype') & c.qtd >= ((archetypesPure[0].qtd / mainSize) / 2 * mainSize))
-      if (archetypes.length > 0) {
-        return archetypes
-      } else {
-        return archetypesPure.filter(c => c.hasOwnProperty('archetype'))
-      }
-    }
 
     const getCardIds = (arr) => {
       return arr.map(c => c.ids).flat().sort(() => Math.random() - 0.5).slice(0, 3)

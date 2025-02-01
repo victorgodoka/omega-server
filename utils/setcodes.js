@@ -598,8 +598,18 @@ export const sets = [
   { code: 0x2c6, set: "Dominus" },
 ]
 
-export const decodeDeck = async (passwords) => {
-  const sql = `SELECT x.id, x.alias, x.setcode FROM datas x WHERE id IN (${passwords.join(',')})`;
+const countOccurrences = (array) => {
+  const countMap = array.reduce((acc, item) => {
+    acc[item] = (acc[item] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(countMap).map(([id, qtd]) => ({ id: parseInt(id), qtd }));
+};
+
+
+export const getDataOmega = async (passwords) => {
+  const sql = `SELECT x.id, x.alias, t.name, x.setcode FROM datas x JOIN texts t ON (t.id = x.id OR t.id = x.alias) WHERE x.id IN (${passwords.join(',')})`;
 
   const data = await (new Promise((resolve, reject) => {
     db.all(sql, [], (err, rows) => {
@@ -607,10 +617,19 @@ export const decodeDeck = async (passwords) => {
       resolve(rows);
     });
   }));
+  
+  const sanitizedPasswords = passwords.map(id => data.find(c => c.id ===id)?.alias || id)
+  return {
+    passwords: sanitizedPasswords,
+    deck: countOccurrences(sanitizedPasswords),
+    data
+  }
+}
 
-
+export const decodeDeck = async (passwords) => {
+  const { data } = await getDataOmega(passwords)
   const blobMap = passwords.map(c => data.find(({ id }) => id === c) ? data.find(({ id }) => id === c).setcode : 0)
-  const setMap =  blobMap.map(blob => {
+  const setMap = blobMap.map(blob => {
     if (!blob) return 0;
     const reversedBlob = [...blob].reverse();
     const numbers = [];
@@ -619,7 +638,7 @@ export const decodeDeck = async (passwords) => {
       const set = sets.find(s => s.code === c)
       numbers.push(set);
     }
-    
+
     return numbers
   })
   return setMap.flat().filter(Boolean)

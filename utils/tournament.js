@@ -1,5 +1,7 @@
 import db from './db.js';
 import { decode } from './converter.js'
+import { getDataOmega } from './setcodes.js'
+import { getDeck } from './decks.js'
 
 export const getAllTournament = async () => {
   const query = `
@@ -67,7 +69,29 @@ export const getTournament = async (id) => {
   const rounds = round.map(round => ({
     ...round,
     rooms: rooms.filter(r => r.round_id === round.id),
-  })) 
+  }))
 
-  return { players, tournament, rounds, decks }
+  const getData = (arr) => arr.map(c => ({
+    id: arr.id,
+    name: c.name
+  }))
+
+  const deckData = await Promise.all(decks.map(async d => {
+    const { passwords, mainSize, sideSize } = decode(d.deck)
+    const { deck, data, passwords: sanitizedPasswords } = (await getDataOmega(passwords))
+    const mainDeck = sanitizedPasswords.slice(0, mainSize)
+    const sideDeck = sideSize ? sanitizedPasswords.slice(-sideSize) : []
+
+    return {
+      id: d.id,
+      code: d.deck,
+      passwords: {
+        mainDeck,
+        sideDeck,
+      },
+      set: await getDeck(d.deck)
+    }
+  }))
+
+  return { decks: deckData, players, tournament, rounds }
 }
