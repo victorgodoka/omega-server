@@ -2,18 +2,12 @@ import express from 'express'
 import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
+import db from '../utils/db.js';
 import { LASTBANLIST } from '../index.js';
 import { getDeck } from '../utils/decks.js';
 dotenv.config();
 
 const router = express.Router();
-const db = await mysql.createPool({
-  host: 'game.duelistsunite.org',
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: 'omega',
-});
-
 const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
   // console.log(arr)
   // Encontra o objeto correspondente ao deck
@@ -67,6 +61,9 @@ router.get('/', async (req, res) => {
     const result = rows.map(async row => {
       const sideA = await getDeck(row.deck1)
       const sideB = await getDeck(row.deck2)
+
+      console.log(sideA)
+      console.log(sideB)
       const duelist = {
         id: row.duelist1 === id ? row.duelist1 : row.duelist2,
         deck: row.duelist1 === id ? sideA : sideB,
@@ -109,8 +106,8 @@ router.get('/', async (req, res) => {
       duracaoTotal += fim.diff(inicio, "ms");
     });
 
-    const onlyOpponentDecks = matchHistory.map(({ opponent, isWinner }) => ({ deck: opponent.deck[0].archetype, win: isWinner, loss: !isWinner }))
-    const onlyDuelistDecks = matchHistory.map(({ duelist, isWinner }) => ({ deck: duelist.deck[0].archetype, win: isWinner, loss: !isWinner }))
+    const onlyOpponentDecks = matchHistory.map(({ opponent, isWinner }) => ({ deck: opponent.deck[0]?.archetype, win: isWinner, loss: !isWinner }))
+    const onlyDuelistDecks = matchHistory.map(({ duelist, isWinner }) => ({ deck: duelist.deck[0]?.archetype, win: isWinner, loss: !isWinner }))
     const opponentDecks = getFinalData(onlyOpponentDecks)
     const mostUsedArchetypes = getFinalData(onlyDuelistDecks)
 
