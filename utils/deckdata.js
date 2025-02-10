@@ -2,15 +2,20 @@ import db from './db.js';
 
 export const getAllDecks = async () => {
   const query = `
-SELECT DISTINCT deck1 AS deck
-FROM omega.duel
-WHERE start > '2024-12-09' AND region = 1
+  SELECT *
+  FROM omega.duel
+  WHERE start > '2024-12-09' AND region = 1;
+`;
 
-UNION
+  const [rows] = await db.execute(query);
+  return rows
+}
 
-SELECT DISTINCT deck2 AS deck
-FROM omega.duel
-WHERE start > '2024-12-09' AND region = 1
+export const getDeckInfo = async (deck) => {
+  const query = `
+  SELECT *
+  FROM omega.duel
+  WHERE start > '2024-12-09' AND region = 1 AND (deck1 = "${deck}" OR deck2 = "${deck}");
 `;
 
   const [rows] = await db.execute(query);

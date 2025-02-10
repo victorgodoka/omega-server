@@ -1,14 +1,6 @@
 import sqlite3 from 'sqlite3';
 sqlite3.verbose();
 
-const weight = {
-  handtrap: 1,
-  tech: 1,
-  engine: 2,
-  deck: 3,
-  subdeck: 0,
-}
-
 const db = new sqlite3.Database("./omega.db", (err) => {
   if (err) {
     reject('Erro ao conectar ao banco de dados: ' + err.message);

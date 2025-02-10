@@ -1,59 +1,72 @@
 import express from 'express';
-import { getAllDecks } from '../utils/deckdata.js';
+import mongoose from 'mongoose';
+import Decks from '../models/decks.js'
+import { getAllDecks, getDeckInfo } from '../utils/deckdata.js';
 import { decode } from '../utils/converter.js';
-import { contarRepeticoes, getData } from '../utils/decks.js';
-
+import { connectMongo } from '../utils/db.js';
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const top = parseInt(req.query.top) || 16;
-
-  const start = Date.now();
   try {
-    const rows = await getAllDecks()
-    const decks = rows.map(({ deck }) => {
-      const { passwords, sideSize } = decode(deck)
+    await connectMongo();
+    const lastId = req.query.lastId;
+    const decks = await Decks.find(lastId ? { _id: { $gt: lastId } } : {})
+      .select({ deck1: 1 })
+      .limit(24);
 
-      return passwords.slice(-sideSize)
-    })
-
-    const decksVariation = decks.map(side => contarRepeticoes(side)).flat()
-
-    const cardData = Object.values(
-      decksVariation.reduce((acc, { id, qtd }) => {
-        if (!acc[id]) {
-          acc[id] = { id, oneEle: 0, twoEle: 0, threeEle: 0, total: 0 };
-        }
-        if (qtd === 1) acc[id].oneEle += 1;
-        if (qtd === 2) acc[id].twoEle += 1;
-        if (qtd === 3) acc[id].threeEle += 1;
-
-        const { oneEle, twoEle, threeEle } = acc[id]
-        acc[id].total = oneEle + twoEle + threeEle
-        return acc;
-      }, {})
-    )
-
-    const cardInfo = getData(cardData.map(({ id }) => id)).map(({ archetype, id, name }) => ({ archetype, id, name }))
-    const data = cardData.map(data => ({
-      ...data,
-      ...cardInfo.find(({ id }) => id === data.id)
-    })).sort((b, a) => a.total - b.total);
-
-    const topData = data.slice(0, top)
-
-    const duration = (Date.now() - start) / 1000;
-    res.status(200).json({
-      duration: `${duration.toFixed(2)} seconds`,
-      data: {
-        topData,
-        totalDecks: rows.length
-      }
-    });
-
+    res.json({ data: decks });
   } catch (error) {
-    res.status(500).json({ duration: `${duration.toFixed(2)} seconds`, error: error.message });
+    console.error('❌ Erro ao buscar decks:', error);
+    res.status(500).json({ message: 'Erro ao buscar os decks' });
   }
 });
+
+router.get('/deck/:deck', async (req, res) => {
+  try {
+    await connectMongo();
+    const deck = req.params.deck;
+    const result = await Decks.find({
+      $or: [
+        { deck1: deck },
+        { deck2: deck }
+      ]
+    });
+
+    res.json({ data: result });
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Erro ao buscar os decks' });
+  }
+});
+
+router.get('/update', async (req, res) => {
+  await connectMongo();
+  const decks = await getAllDecks();
+
+  if (decks.length === 0) {
+    console.log('⚠️ Nenhum dado para migrar.');
+    return;
+  }
+
+  try {
+    const result = await Decks.insertMany(decks, { ordered: false }); // `ordered: false` continua após erro
+    console.log(`✅ ${result.length} novos registros inseridos no MongoDB.`);
+  } catch (error) {
+    if (error.code === 11000) {
+      console.warn('⚠️ Alguns registros já existiam e foram ignorados.');
+    } else {
+      console.error('❌ Erro ao inserir no MongoDB:', error);
+    }
+  } finally {
+    mongoose.connection.close();
+  }
+});
+
+router.get('/delete', async (req, res) => {
+  await connectMongo();
+  await Decks.deleteMany({});
+  console.log('🗑️ Todos os registros anteriores foram removidos.');
+});
+
 
 export default router;

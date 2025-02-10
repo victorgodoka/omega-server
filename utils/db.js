@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import { config } from 'dotenv';
-import { GraphQLClient } from 'graphql-request';
+import mongoose from 'mongoose';
 config();
 
 // Cria a pool de conexões
@@ -14,12 +14,23 @@ const pool = mysql.createPool({
   database: 'omega'
 });
 
-const hasuraUrl = 'http://localhost:8080/v1/graphql';
-
-export const graphQLClient = new GraphQLClient(hasuraUrl, {
-  headers: {
-    'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET, // Substitua com a chave secreta do Hasura
-  },
-});
-
 export default pool;
+
+const dbUser = process.env.MONGO_INITDB_ROOT_USERNAME;
+const dbPassword = process.env.MONGO_INITDB_ROOT_PASSWORD;
+const dbName = process.env.MONGO_DB_NAME;
+
+const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/${dbName}?authSource=admin`;
+console.log(MONGO_URI)
+export const connectMongo = async () => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    console.log('✅ Conectado ao MongoDB');
+  } catch (err) {
+    console.error('❌ Erro ao conectar ao MongoDB:', err);
+    process.exit(1);
+  }
+};
