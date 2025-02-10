@@ -1,6 +1,6 @@
 import { decode, encode } from '../utils/converter.js';
 import express from 'express';
-import { decodeDeck } from '../utils/setcodes.js';
+import { decodeDeck, getDataOmega } from '../utils/setcodes.js';
 import * as ydke from "ydke";
 
 const router = express.Router();
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       message: 'Decks fetched successfully.',
       data: {
         ...deck, 
-        passwords: deck.passwords,
+        passwords: (await getDataOmega(deck.passwords)).passwords,
         setcodes: await decodeDeck(deck.passwords)
       }
     });

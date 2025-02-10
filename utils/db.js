@@ -21,7 +21,7 @@ const dbPassword = process.env.MONGO_INITDB_ROOT_PASSWORD;
 const dbName = process.env.MONGO_DB_NAME;
 
 const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/${dbName}?authSource=admin`;
-console.log(MONGO_URI)
+
 export const connectMongo = async () => {
   try {
     await mongoose.connect(MONGO_URI, {

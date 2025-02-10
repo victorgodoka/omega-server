@@ -1,5 +1,4 @@
 import express from 'express'
-import mysql from 'mysql2/promise';
 import moment from "moment";
 import dotenv from 'dotenv';
 import db from '../utils/db.js';
@@ -9,8 +8,6 @@ dotenv.config();
 
 const router = express.Router();
 const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
-  // console.log(arr)
-  // Encontra o objeto correspondente ao deck
   const existingDeck = acc.find(item => item.deck === deck);
 
   if (existingDeck) {
@@ -54,20 +51,12 @@ router.get('/', async (req, res) => {
       [id, id]
     );
 
-    const getCardIds = (arr) => {
-      return arr.map(c => c.ids).flat().sort(() => Math.random() - 0.5).slice(0, 3)
-    }
-
     const result = rows.map(async row => {
       const sideA = await getDeck(row.deck1)
       const sideB = await getDeck(row.deck2)
-
-      console.log(sideA)
-      console.log(sideB)
       const duelist = {
         id: row.duelist1 === id ? row.duelist1 : row.duelist2,
         deck: row.duelist1 === id ? sideA : sideB,
-        ids: row.duelist1 === id ? getCardIds(sideA) : getCardIds(sideB),
         discord: {
           username: row.duelist1 === id ? row.duelist1_username : row.duelist2_username,
           avatar: row.duelist1 === id ? row.duelist1_avatar : row.duelist2_avatar,
@@ -78,7 +67,6 @@ router.get('/', async (req, res) => {
       const opponent = {
         id: row.duelist1 === id ? row.duelist2 : row.duelist1,
         deck: row.duelist1 === id ? sideB : sideA,
-        ids: row.duelist1 === id ? getCardIds(sideB) : getCardIds(sideA),
         discord: {
           username: row.duelist1 === id ? row.duelist2_username : row.duelist1_username,
           avatar: row.duelist1 === id ? row.duelist2_avatar : row.duelist1_avatar,

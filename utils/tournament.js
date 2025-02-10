@@ -71,11 +71,6 @@ export const getTournament = async (id) => {
     rooms: rooms.filter(r => r.round_id === round.id),
   }))
 
-  const getData = (arr) => arr.map(c => ({
-    id: arr.id,
-    name: c.name
-  }))
-
   const deckData = await Promise.all(decks.map(async d => {
     const { passwords, mainSize, sideSize } = decode(d.deck)
     const { deck, data, passwords: sanitizedPasswords } = (await getDataOmega(passwords))
