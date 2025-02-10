@@ -25,5 +25,6 @@ COPY .env .env
 
 EXPOSE 3000
 EXPOSE 3001
+EXPOSE 27017
 
 CMD ["yarn", "start"]
