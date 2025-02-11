@@ -55,16 +55,13 @@ router.get('/deck/:deck', async (req, res) => {
   }
 });
 
-router.get('/update', async (req, res) => {
+const migrateDecks = async () => {
   await connectMongo();
-  console.log('Iniciando os trabalhos...')
-  res.setHeader('Content-Type', 'text/plain');
-  res.setHeader('Transfer-Encoding', 'chunked');
-  res.write('⏳ Buscando último ID migrado...\n');
 
-  // Pegamos o último ID migrado no MongoDB
+  console.log('⏳ Iniciando migração em background...');
+
   const lastId = await getLatestMigratedId();
-  res.write(`📌 Último ID migrado: ${lastId}\n`);
+  console.log(`📌 Último ID migrado: ${lastId}`);
 
   let offset = 0;
   const batchSize = 1000;
@@ -73,12 +70,12 @@ router.get('/update', async (req, res) => {
   try {
     while (true) {
       const decks = await getAllDecksBatch(offset, batchSize, lastId);
-      if (decks.length === 0) break; // Parar se não houver mais dados
+      if (decks.length === 0) break;
 
       const bulkOps = decks.map(deck => ({
         updateOne: {
-          filter: { id: deck.id }, // ID único do MySQL
-          update: { $set: deck },  // Atualiza se existir, insere se não existir
+          filter: { id: deck.id },
+          update: { $set: deck },
           upsert: true
         }
       }));
@@ -87,17 +84,22 @@ router.get('/update', async (req, res) => {
       totalMigrated += result.upsertedCount + result.modifiedCount;
       offset += batchSize;
 
-      res.write(`✅ ${result.upsertedCount} inseridos, ${result.modifiedCount} atualizados. Total: ${totalMigrated}\n`);
+      console.log(`✅ ${result.upsertedCount} inseridos, ${result.modifiedCount} atualizados. Total: ${totalMigrated}`);
     }
 
-    res.write(`🎉 Migração concluída! Total: ${totalMigrated}\n`);
+    console.log(`🎉 Migração concluída! Total: ${totalMigrated}`);
   } catch (error) {
-    res.write(`❌ Erro: ${error.message}\n`);
+    console.error(`❌ Erro: ${error.message}`);
   } finally {
     mongoose.connection.close();
-    res.end();
   }
+};
+
+router.get('/update', async (req, res) => {
+  res.json({ message: "🚀 Migração iniciada! Acompanhe os logs do servidor." });
+  migrateDecks(); // Executa a função em background
 });
+
 
 router.get('/delete', async (req, res) => {
   await connectMongo();
