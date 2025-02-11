@@ -29,7 +29,7 @@ export const connectMongo = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
-    console.log('✅ Conectado ao MongoDB');
+    console.log('✅ Conectado ao MongoDB at ', MONGO_URI);
   } catch (err) {
     console.error('❌ Erro ao conectar ao MongoDB:', err);
     process.exit(1);
