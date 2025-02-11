@@ -21,7 +21,7 @@ ENV MONGO_DB_NAME=$MONGO_DB_NAME
 RUN yarn install
 
 COPY . /app
-COPY .env .env
+COPY .env.production .env
 
 EXPOSE 3000
 EXPOSE 3001

@@ -21,7 +21,7 @@ services:
     volumes:
       - mongo_data:/data/db
     env_file:
-      - .env
+      - .env.production
     environment:
       MONGO_INITDB_ROOT_USERNAME: godoka
       MONGO_INITDB_ROOT_PASSWORD: HpUKQ3Zel7JyRg7eYl3ZqlI47

@@ -19,8 +19,9 @@ export default pool;
 const dbUser = process.env.MONGO_INITDB_ROOT_USERNAME;
 const dbPassword = process.env.MONGO_INITDB_ROOT_PASSWORD;
 const dbName = process.env.MONGO_DB_NAME;
+const mongourl = process.env.MONGO_URL;
 
-const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/${dbName}?authSource=admin`;
+const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@${mongourl}:27017/${dbName}?authSource=admin`;
 
 export const connectMongo = async () => {
   try {
