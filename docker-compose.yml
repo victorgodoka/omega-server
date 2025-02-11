@@ -10,6 +10,7 @@ services:
       - .env
     volumes:
       - .:/app
+      - ./data:/app/data
     depends_on:
       - mongo_db
 

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const DeckSchema = new mongoose.Schema({
+  sqlid: { type: Number, required: true },
   duelist1: { type: String, required: true },
   duelist2: { type: String, required: true },
   result: { type: Number, required: true },
@@ -10,6 +11,4 @@ const DeckSchema = new mongoose.Schema({
   end: { type: Date, required: true },
 });
 
-DeckSchema.index({ deck1: 1, deck2: 1 }, { unique: true });
-
-export default mongoose.model('Decks', DeckSchema);
+export default mongoose.model('Duels', DeckSchema);

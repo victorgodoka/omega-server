@@ -14,8 +14,6 @@ router.get('/', async (req, res) => {
     await connectMongo();
     const page = req.query.page || 1;
     const limit = req.query.limit || 24;
-    const skip = (page - 1) * limit;
-
     const data = await getDeckStatsPaginated(Decks, page, limit)
 
     res.json({ data });
@@ -74,7 +72,7 @@ const migrateDecks = async () => {
 
       const bulkOps = decks.map(deck => ({
         updateOne: {
-          filter: { id: deck.id },
+          filter: { sqlid: deck.id },
           update: { $set: deck },
           upsert: true
         }
@@ -104,7 +102,7 @@ router.get('/update', async (req, res) => {
 router.get('/delete', async (req, res) => {
   await connectMongo();
   await Decks.deleteMany({});
-  console.log('🗑️ Todos os registros anteriores foram removidos.');
+  res.send('🗑️ Todos os registros anteriores foram removidos.');
 });
 
 

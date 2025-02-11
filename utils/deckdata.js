@@ -16,8 +16,15 @@ export const getAllDecks = async () => {
 }
 
 export const getLatestMigratedId = async () => {
-  const lastDeck = await Decks.findOne().sort({ id: -1 }).select('id').lean();
-  return lastDeck?.id || 4878525; 
+  const lastDeck = await Decks.findOne().sort({ sqlid: -1 }).select('sqlid').lean();
+  return lastDeck?.sqlid || await getFirst(); 
+};
+
+export const getFirst = async () => {
+  const query = `SELECT * FROM omega.duel WHERE start >= '2024-12-09' ORDER BY start ASC LIMIT 1;
+`;
+  const [rows] = await db.execute(query);
+  return rows[0].id;
 };
 
 export const getAllDecksBatch = async (offset, limit, lastId) => {
@@ -46,8 +53,6 @@ export const getDeckInfo = async (deck) => {
 }
 
 export const getDeckStatsPaginated = async (model, page = 1, limit = 24) => {
-  const collectionName = model.collection.name; // Nome da coleção no Mongoose
-
   const pipeline = [
     {
       $facet: {
@@ -61,7 +66,7 @@ export const getDeckStatsPaginated = async (model, page = 1, limit = 24) => {
           },
           {
             $unionWith: {
-              coll: collectionName, // Nome da coleção no MongoDB
+              coll: 'duels', // Nome da coleção no MongoDB
               pipeline: [
                 {
                   $group: {
@@ -93,7 +98,7 @@ export const getDeckStatsPaginated = async (model, page = 1, limit = 24) => {
           },
           {
             $unionWith: {
-              coll: collectionName,
+              coll: 'duels',
               pipeline: [
                 {
                   $group: {

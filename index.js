@@ -10,6 +10,7 @@ import deckdata from './routes/deckdata.js';
 import tournaments from './routes/tournaments.js';
 import convert from './routes/convert.js';
 import profile from './routes/profile.js';
+import updatedb from './routes/updatedb.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/deckdata', deckdata)
 app.use('/api/tournaments', tournaments)
 app.use('/api/convert', convert)
 app.use('/api/profile', profile)
+app.use('/api/updatedb', updatedb)
 
 app.use((err, req, res, next) => {
   console.error('Erro não tratado:', err);
