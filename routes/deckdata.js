@@ -57,7 +57,7 @@ router.get('/deck/:deck', async (req, res) => {
 
 router.get('/update', async (req, res) => {
   await connectMongo();
-
+  console.log('Iniciando os trabalhos...')
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Transfer-Encoding', 'chunked');
   res.write('⏳ Buscando último ID migrado...\n');
