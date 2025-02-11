@@ -23,10 +23,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/deck/:deck', async (req, res) => {
+router.get('/deck', async (req, res) => {
   try {
     await connectMongo();
-    const deck = req.params.deck;
+    const deck = req.query.deck;
 
     const result = await getDeckStatsByName(Decks, deck)
     const { passwords, mainSize, sideSize } = decode(result._id)
@@ -39,6 +39,7 @@ router.get('/deck/:deck', async (req, res) => {
       code: result._id,
       games: result.games,
       wins: result.wins,
+      uniquePlayers: result.uniquePlayers,
       data: await getDeck(result._id),
       passwords: {
         mainDeck,

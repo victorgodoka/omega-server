@@ -156,7 +156,7 @@ export const getDeckStatsByName = async (model, deckName) => {
         deckStats: [
           {
             $match: {
-              $or: [{ deck1: deckName }, { deck2: deckName }] // Filtra pelo deck passado
+              $or: [{ deck1: deckName }, { deck2: deckName }] // Filtra apenas jogos onde o deck foi usado
             }
           },
           {
@@ -167,15 +167,32 @@ export const getDeckStatsByName = async (model, deckName) => {
                 $sum: {
                   $cond: [
                     {
-                      $or: [{ $and: [{ $eq: ["$deck1", deckName] }, { $eq: ["$result", 0] }] }, // deck1 venceu
-                      { $and: [{ $eq: ["$deck2", deckName] }, { $eq: ["$result", 1] }] } // deck2 venceu
+                      $or: [
+                        { $and: [{ $eq: ["$deck1", deckName] }, { $eq: ["$result", 0] }] }, // deck1 venceu
+                        { $and: [{ $eq: ["$deck2", deckName] }, { $eq: ["$result", 1] }] } // deck2 venceu
                       ]
                     },
                     1, // Conta como vitória
                     0  // Caso contrário, não conta
                   ]
                 }
+              },
+              playersUsingDeck: {
+                $addToSet: {
+                  $cond: [
+                    { $eq: ["$deck1", deckName] }, // Se o deck pesquisado foi usado por `duelist1`
+                    "$duelist1",
+                    "$duelist2"
+                  ]
+                }
               }
+            }
+          },
+          {
+            $project: {
+              games: 1,
+              wins: 1,
+              uniquePlayers: { $size: "$playersUsingDeck" } // Conta os duelistas únicos que usaram esse deck
             }
           }
         ]
@@ -190,5 +207,7 @@ export const getDeckStatsByName = async (model, deckName) => {
 
   const results = await model.aggregate(pipeline).exec();
 
-  return results[0].deckStats || { deckName, games: 0, wins: 0 };
+  return results[0].deckStats || { deckName, games: 0, wins: 0, uniquePlayers: 0 };
 };
+
+
