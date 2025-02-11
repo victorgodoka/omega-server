@@ -1,6 +1,7 @@
 import db from './db.js';
 import crypto from "crypto";
 import { getDeck } from './decks.js';
+import Decks from '../models/decks.js'
 
 export const getAllDecks = async () => {
   const query = `
@@ -13,6 +14,24 @@ export const getAllDecks = async () => {
   const [rows] = await db.execute(query);
   return rows
 }
+
+export const getLatestMigratedId = async () => {
+  const lastDeck = await Decks.findOne().sort({ id: -1 }).select('id').lean();
+  return lastDeck?.id || 4878525; 
+};
+
+export const getAllDecksBatch = async (offset, limit, lastId) => {
+  const query = `
+  SELECT *
+  FROM omega.duel
+  WHERE id > ? AND region = 1
+  ORDER BY id ASC
+  LIMIT ? OFFSET ?;
+  `;
+
+  const [rows] = await db.execute(query, [lastId, limit, offset]);
+  return rows;
+};
 
 export const getDeckInfo = async (deck) => {
   const query = `

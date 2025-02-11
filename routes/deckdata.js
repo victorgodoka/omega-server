@@ -2,7 +2,7 @@ import crypto from "crypto";
 import express from 'express';
 import mongoose from 'mongoose';
 import Decks from '../models/decks.js'
-import { getAllDecks, getDeckStatsPaginated, getDeckStatsByName } from '../utils/deckdata.js';
+import { getLatestMigratedId, getAllDecksBatch, getDeckStatsPaginated, getDeckStatsByName } from '../utils/deckdata.js';
 import { getDeck } from '../utils/decks.js';
 import { decode } from '../utils/converter.js'
 import { getDataOmega } from '../utils/setcodes.js'
@@ -57,24 +57,45 @@ router.get('/deck/:deck', async (req, res) => {
 
 router.get('/update', async (req, res) => {
   await connectMongo();
-  const decks = await getAllDecks();
 
-  if (decks.length === 0) {
-    console.log('⚠️ Nenhum dado para migrar.');
-    return;
-  }
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.write('⏳ Buscando último ID migrado...\n');
+
+  // Pegamos o último ID migrado no MongoDB
+  const lastId = await getLatestMigratedId();
+  res.write(`📌 Último ID migrado: ${lastId}\n`);
+
+  let offset = 0;
+  const batchSize = 1000;
+  let totalMigrated = 0;
 
   try {
-    const result = await Decks.insertMany(decks, { ordered: false }); // `ordered: false` continua após erro
-    console.log(`✅ ${result.length} novos registros inseridos no MongoDB.`);
-  } catch (error) {
-    if (error.code === 11000) {
-      console.warn('⚠️ Alguns registros já existiam e foram ignorados.');
-    } else {
-      console.error(error.code, '❌ Erro ao inserir no MongoDB:');
+    while (true) {
+      const decks = await getAllDecksBatch(offset, batchSize, lastId);
+      if (decks.length === 0) break; // Parar se não houver mais dados
+
+      const bulkOps = decks.map(deck => ({
+        updateOne: {
+          filter: { id: deck.id }, // ID único do MySQL
+          update: { $set: deck },  // Atualiza se existir, insere se não existir
+          upsert: true
+        }
+      }));
+
+      const result = await Decks.bulkWrite(bulkOps, { ordered: false });
+      totalMigrated += result.upsertedCount + result.modifiedCount;
+      offset += batchSize;
+
+      res.write(`✅ ${result.upsertedCount} inseridos, ${result.modifiedCount} atualizados. Total: ${totalMigrated}\n`);
     }
+
+    res.write(`🎉 Migração concluída! Total: ${totalMigrated}\n`);
+  } catch (error) {
+    res.write(`❌ Erro: ${error.message}\n`);
   } finally {
     mongoose.connection.close();
+    res.end();
   }
 });
 
