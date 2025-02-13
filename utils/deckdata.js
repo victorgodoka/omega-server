@@ -52,7 +52,7 @@ export const getDeckInfo = async (deck) => {
   return rows
 }
 
-export const getDeckStatsPaginated = async (model, page = 1, limit = 24) => {
+export const getDeckStatsPaginated = async (model, page = 1, limit = 24, name = "") => {
   const pipeline = [
     {
       $facet: {
@@ -137,9 +137,10 @@ export const getDeckStatsPaginated = async (model, page = 1, limit = 24) => {
 
   const total = results[0].totalCount || 0;
   const totalPages = Math.ceil(total / limit);
+  const finalData = await Promise.all(data)
 
   return {
-    data: await Promise.all(data),
+    data: name ? finalData.filter(c => c.data.map(c => c.archetype).slice(0, 3).join(" ").toLowerCase()  === name) : finalData,
     page: parseInt(page),
     limit,
     total,

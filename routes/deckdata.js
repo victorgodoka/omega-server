@@ -14,8 +14,8 @@ router.get('/', async (req, res) => {
     await connectMongo();
     const page = req.query.page || 1;
     const limit = req.query.limit || 24;
-    const data = await getDeckStatsPaginated(Decks, page, limit)
-
+    const name = req.query.name || "";
+    let data = await getDeckStatsPaginated(Decks, page, limit, name.toLowerCase())
     res.json({ data });
   } catch (error) {
     console.error('❌ Erro ao buscar decks:', error);
