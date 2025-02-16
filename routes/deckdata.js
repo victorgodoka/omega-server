@@ -2,10 +2,11 @@ import crypto from "crypto";
 import express from 'express';
 import mongoose from 'mongoose';
 import Decks from '../models/decks.js'
-import { getLatestMigratedId, getAllDecksBatch, getDeckStatsPaginated, getDeckStatsByName } from '../utils/deckdata.js';
+import { getLatestMigratedId, getAllDecksBatch, getDeckStatsPaginated, getDeckStats, getDeckStatsByName } from '../utils/deckdata.js';
 import { getDeck } from '../utils/decks.js';
 import { decode } from '../utils/converter.js'
 import { getDataOmega } from '../utils/setcodes.js'
+import { paginateArray } from '../utils/functions.js'
 import { connectMongo } from '../utils/db.js';
 const router = express.Router();
 
@@ -15,8 +16,15 @@ router.get('/', async (req, res) => {
     const page = req.query.page || 1;
     const limit = req.query.limit || 24;
     const name = req.query.name || "";
-    let data = await getDeckStatsPaginated(Decks, page, limit, name.toLowerCase())
-    res.json({ data });
+    let data = await getDeckStats(Decks)
+
+    if (name) {
+      data = data.filter(c => {
+        const archetypes = c.data.map(c => c.archetype).map(a => a.toLowerCase()).sort().join(" ");
+        return archetypes === name.toLowerCase().split(" ").sort().join(" ");
+      });
+    }
+    res.json({ data: paginateArray(data, page, limit) });
   } catch (error) {
     console.error('❌ Erro ao buscar decks:', error);
     res.status(500).json({ message: 'Erro ao buscar os decks' });
@@ -99,12 +107,16 @@ router.get('/update', async (req, res) => {
   migrateDecks(); // Executa a função em background
 });
 
-
 router.get('/delete', async (req, res) => {
-  await connectMongo();
-  await Decks.deleteMany({});
-  res.send('🗑️ Todos os registros anteriores foram removidos.');
-});
+  const token = req.query.token;
 
+  if (!token || token !== process.env.DELETETOKEN) {
+    res.send('Wrong token.')
+  } else {
+    await connectMongo();
+    await Decks.deleteMany({});
+    res.send('🗑️ Todos os registros anteriores foram removidos.');
+  }
+});
 
 export default router;

@@ -127,20 +127,19 @@ export const getDeckStatsPaginated = async (model, page = 1, limit = 24, name = 
 
   const results = await model.aggregate(pipeline).exec();
 
-  const data = results[0].paginatedResults.map(async deck => ({
+  const data = await Promise.all(results[0].paginatedResults.map(async deck => ({
     id: crypto.createHash("sha256").update(deck._id).digest("hex").slice(0, 8),
     code: deck._id,
     games: deck.games,
     wins: deck.wins,
     data: await getDeck(deck._id)
-  }));
+  })));
 
   const total = results[0].totalCount || 0;
   const totalPages = Math.ceil(total / limit);
-  const finalData = await Promise.all(data)
 
   return {
-    data: name ? finalData.filter(c => c.data.map(c => c.archetype).slice(0, 3).join(" ").toLowerCase()  === name) : finalData,
+    data,
     page: parseInt(page),
     limit,
     total,
@@ -209,6 +208,92 @@ export const getDeckStatsByName = async (model, deckName) => {
   const results = await model.aggregate(pipeline).exec();
 
   return results[0].deckStats || { deckName, games: 0, wins: 0, uniquePlayers: 0 };
+};
+
+export const getDeckStats = async (model) => {
+  const pipeline = [
+    {
+      $facet: {
+        allGames: [
+          {
+            $group: {
+              _id: "$deck1",
+              games: { $sum: 1 },
+              wins: { $sum: { $cond: [{ $eq: ["$result", 0] }, 1, 0] } }
+            }
+          },
+          {
+            $unionWith: {
+              coll: 'duels',
+              pipeline: [
+                {
+                  $group: {
+                    _id: "$deck2",
+                    games: { $sum: 1 },
+                    wins: { $sum: { $cond: [{ $eq: ["$result", 1] }, 1, 0] } }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $group: {
+              _id: "$_id",
+              games: { $sum: "$games" },
+              wins: { $sum: "$wins" }
+            }
+          },
+          { $match: { games: { $gte: 10 } } }, // Mantém filtro de decks com 10+ jogos
+          { $sort: { games: -1 } }
+        ],
+        totalCount: [
+          {
+            $group: {
+              _id: "$deck1"
+            }
+          },
+          {
+            $unionWith: {
+              coll: 'duels',
+              pipeline: [
+                {
+                  $group: {
+                    _id: "$deck2"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 }
+            }
+          }
+        ]
+      }
+    },
+    {
+      $project: {
+        results: "$allGames",
+        totalCount: { $arrayElemAt: ["$totalCount.total", 0] }
+      }
+    }
+  ];
+
+  const results = await model.aggregate(pipeline).exec();
+
+  const data = await Promise.all(
+    results[0].results.map(async deck => ({
+      id: crypto.createHash("sha256").update(deck._id).digest("hex").slice(0, 8),
+      code: deck._id,
+      games: deck.games,
+      wins: deck.wins,
+      data: await getDeck(deck._id)
+    }))
+  );
+
+  return data;
 };
 
 
