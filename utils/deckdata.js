@@ -1,6 +1,8 @@
 import db from './db.js';
 import crypto from "crypto";
 import { getDeck } from './decks.js';
+import pkg from './functions.cjs';
+const { calculateDeckScore } = pkg;
 import Decks from '../models/decks.js'
 
 export const getAllDecks = async () => {
@@ -44,7 +46,7 @@ export const getDeckInfo = async (deck) => {
   const query = `
   SELECT *
   FROM omega.duel
-  WHERE start > '2024-12-09' AND region = 1 AND (deck1 = "${deck}" OR deck2 = "${deck}")
+  WHERE start >= '2024-12-09' AND region = 1 AND (deck1 = "${deck}" OR deck2 = "${deck}")
   ORDER BY start DESC;
 `;
 
@@ -284,12 +286,15 @@ export const getDeckStats = async (model) => {
   const results = await model.aggregate(pipeline).exec();
 
   const data = await Promise.all(
-    results[0].results.map(async deck => ({
+    results[0].results.map(async (deck, _, arr) => ({
       id: crypto.createHash("sha256").update(deck._id).digest("hex").slice(0, 8),
       code: deck._id,
       games: deck.games,
       wins: deck.wins,
-      data: await getDeck(deck._id)
+      data: await getDeck(deck._id),
+      winRate: deck.wins / deck.games,
+      popularity: deck.games / arr.reduce((a, b) => a + b.games, 0),
+      rating: calculateDeckScore(deck.games, deck.wins, arr.reduce((a, b) => a + b.games, 0))
     }))
   );
 

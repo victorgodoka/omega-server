@@ -6,25 +6,37 @@ import { getLatestMigratedId, getAllDecksBatch, getDeckStatsPaginated, getDeckSt
 import { getDeck } from '../utils/decks.js';
 import { decode } from '../utils/converter.js'
 import { getDataOmega } from '../utils/setcodes.js'
-import { paginateArray } from '../utils/functions.js'
+import pkg from '../utils/functions.cjs';
+const { paginateArray, groupDecksByArchetype, addPercentageToData } = pkg;
 import { connectMongo } from '../utils/db.js';
+
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
     await connectMongo();
-    const page = req.query.page || 1;
-    const limit = req.query.limit || 24;
     const name = req.query.name || "";
     let data = await getDeckStats(Decks)
 
     if (name) {
       data = data.filter(c => {
         const archetypes = c.data.map(c => c.archetype).map(a => a.toLowerCase()).sort().join(" ");
-        return archetypes === name.toLowerCase().split(" ").sort().join(" ");
+        return archetypes.includes(name.toLowerCase().split(" ").sort().join(" "));
       });
     }
-    res.json({ data: paginateArray(data, page, limit) });
+    res.json({ data });
+  } catch (error) {
+    console.error('❌ Erro ao buscar decks:', error);
+    res.status(500).json({ message: 'Erro ao buscar os decks' });
+  }
+});
+
+router.get('/all', async (req, res) => {
+  try {
+    await connectMongo();
+    let data = await getDeckStats(Decks)
+
+    res.json({ data: groupDecksByArchetype(data, 1) });
   } catch (error) {
     console.error('❌ Erro ao buscar decks:', error);
     res.status(500).json({ message: 'Erro ao buscar os decks' });
@@ -62,7 +74,7 @@ router.get('/deck', async (req, res) => {
   }
 });
 
-const migrateDecks = async () => {
+export const migrateDecks = async () => {
   await connectMongo();
 
   console.log('⏳ Iniciando migração em background...');
