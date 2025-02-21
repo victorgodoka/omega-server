@@ -576,7 +576,7 @@ export const sets = [
   // { code: 0x11b8, set: "Shark Drake" },
   { code: 0x1b9, set: "Primite" },
   { code: 0x1ba, set: "Metalmorph" },
-  { code: 0x1bb, set: "Morganite" },
+  // { code: 0x1bb, set: "Morganite" },
   { code: 0x1bc, set: "Azamina" },
   { code: 0x1bd, set: "Schoolwork" },
   { code: 0x1be, set: "Ryzeal" },
