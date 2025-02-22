@@ -6,12 +6,15 @@ import pkg from './functions.cjs';
 const { calculateDeckScore } = pkg;
 import Decks from '../models/decks.js'
 import Users from '../models/users.js'
+import mongoose from 'mongoose';
+
+const LASTBANLIST = '2024-12-09'
 
 export const getAllDecks = async () => {
   const query = `
   SELECT *
   FROM omega.duel
-  WHERE start > '2024-12-09' AND region = 1
+  WHERE start >= '${LASTBANLIST}' AND region = 1
   ORDER BY start DESC;
 `;
 
@@ -19,13 +22,13 @@ export const getAllDecks = async () => {
   return rows
 }
 
-export const getLatestMigratedId = async () => {
+export const getLatestMigratedId = async (restart) => {
   const lastDeck = await Decks.findOne().sort({ sqlid: -1 }).select('sqlid').lean();
-  return lastDeck?.sqlid || await getFirst();
+  return restart ? await getFirst() : (lastDeck?.sqlid || await getFirst());
 };
 
 export const getFirst = async () => {
-  const query = `SELECT * FROM omega.duel WHERE start >= '2024-12-09' ORDER BY start ASC LIMIT 1;
+  const query = `SELECT * FROM omega.duel WHERE start >= '${LASTBANLIST}' ORDER BY start ASC LIMIT 1;
 `;
   const [rows] = await db.execute(query);
   return rows[0].id;
@@ -42,9 +45,7 @@ export const getAllDecksBatch = async (offset, limit, lastId) => {
     FROM omega.duel d
     LEFT JOIN omega.user u1 ON d.duelist1 = u1.id
     LEFT JOIN omega.user u2 ON d.duelist2 = u2.id
-    WHERE d.id > ? AND d.region = 1
-      AND u1.tcgrating >= 350
-      AND u2.tcgrating >= 350
+    WHERE d.id > ? AND d.region = 1 AND d.start >= '${LASTBANLIST}'
     ORDER BY d.id ASC
     LIMIT ? OFFSET ?;
   `;
@@ -57,7 +58,7 @@ export const getDeckInfo = async (deck) => {
   const query = `
   SELECT *
   FROM omega.duel
-  WHERE start >= '2024-12-09' AND region = 1 AND (deck1 = "${deck}" OR deck2 = "${deck}")
+  WHERE start >= '${LASTBANLIST}' AND region = 1 AND (deck1 = "${deck}" OR deck2 = "${deck}")
   ORDER BY start DESC;
 `;
 
@@ -223,230 +224,98 @@ export const getDeckStatsByName = async (model, deckName) => {
   return results[0].deckStats || { deckName, games: 0, wins: 0, uniquePlayers: 0 };
 };
 
-// export const getDeckStats = async (model) => {
-//   const results = await model.aggregate([
-//     {
-//       $lookup: {
-//         from: "users",
-//         localField: "duelist1",
-//         foreignField: "id",
-//         as: "duelist1Data",
-//       },
-//     },
-//     {
-//       $lookup: {
-//         from: "users",
-//         localField: "duelist2",
-//         foreignField: "id",
-//         as: "duelist2Data",
-//       },
-//     },
-//     {
-//       $unwind: "$duelist1Data",
-//     },
-//     {
-//       $unwind: "$duelist2Data",
-//     },
-//     {
-//       $facet: {
-//         deck1Stats: [
-//           {
-//             $group: {
-//               _id: "$deck1",
-//               deck: { $first: "$deck1" },
-//               games: { $sum: 1 },
-//               wins: {
-//                 $sum: {
-//                   $cond: [{ $eq: ["$result", 0] }, 1, 0],
-//                 },
-//               },
-//               totalRating: {
-//                 $sum: {
-//                   $max: [
-//                     0, // Garante que não haja valores negativos
-//                     { $divide: [{ $add: ["$duelist1Data.tcgrating", "$duelist2Data.tcgrating"] }, 2] }
-//                   ]
-//                 },
-//               },
-//             },
-//           },
-//         ],
-//         deck2Stats: [
-//           {
-//             $group: {
-//               _id: "$deck2",
-//               deck: { $first: "$deck2" },
-//               games: { $sum: 1 },
-//               wins: {
-//                 $sum: {
-//                   $cond: [{ $eq: ["$result", 1] }, 1, 0],
-//                 },
-//               },
-//               totalRating: {
-//                 $sum: {
-//                   $max: [
-//                     0,
-//                     { $divide: [{ $add: ["$duelist1Data.tcgrating", "$duelist2Data.tcgrating"] }, 2] }
-//                   ]
-//                 },
-//               },
-//             },
-//           },
-//         ],
-//       },
-//     },
-//     {
-//       $project: {
-//         combinedStats: {
-//           $concatArrays: ["$deck1Stats", "$deck2Stats"],
-//         },
-//       },
-//     },
-//     {
-//       $unwind: "$combinedStats",
-//     },
-//     {
-//       $replaceRoot: { newRoot: "$combinedStats" },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//         id: "$_id",
-//         deck: 1,
-//         games: 1,
-//         wins: 1,
-//         rating: {
-//           $cond: [
-//             { $eq: ["$games", 0] },
-//             0,
-//             { $divide: ["$totalRating", "$games"] }
-//           ],
-//         },
-//       },
-//     },
-//   ]);
-
-
-//   // const data = await Promise.all(
-//   //   results.map(async (deck, _, arr) => ({
-//   //     id: crypto.createHash("sha256").update(deck._id).digest("hex").slice(0, 8),
-//   //     code: deck._id,
-//   //     games: deck.games,
-//   //     wins: deck.wins,
-//   //     data: await getDeck(deck._id),
-//   //     winRate: deck.wins / deck.games,
-//   //     popularity: deck.games / arr.reduce((a, b) => a + b.games, 0),
-//   //     rating: calculateDeckScore(deck.games, deck.wins, arr.reduce((a, b) => a + b.games, 0))
-//   //   }))
-//   // );
-
-//   return results;
-// };
-
 export const getDeckStats = async (deckName = null) => {
   try {
-    // Filtra os duelos que envolvem o deck especificado (se fornecido)
+    // Filtro para duelos envolvendo o deck especificado (se fornecido)
     const matchStage = deckName
-      ? {
-        $match: {
-          $or: [
-            { deck1: deckName },
-            { deck2: deckName }
-          ]
-        }
-      }
-      : { $match: {} }; // Se nenhum nome for passado, pega todos os duelos
+      ? { $match: { $or: [{ deck1: deckName }, { deck2: deckName }] } }
+      : { $match: {} };
 
-    const result = await Decks.aggregate([
-      // Filtra os duelos
+    // Nome da coleção temporária
+    const tempCollection = 'temp_deck_stats';
+
+    // Processa as estatísticas de deck1 e armazena na coleção temporária
+    await Decks.aggregate([
       matchStage,
-      // Agrupa os duelos por deck
-      {
-        $facet: {
-          deck1Stats: [
-            {
-              $group: {
-                _id: '$deck1',
-                games: { $sum: 1 },
-                wins: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$result', 0] }, // Vitória do duelist1 (deck1)
-                      1,
-                      0
-                    ]
-                  }
-                },
-                totalRating: { $sum: '$duelRating' },
-                uniqueUsers: { $addToSet: '$duelist1' } // Armazena duelist1 únicos
-              }
-            }
-          ],
-          deck2Stats: [
-            {
-              $group: {
-                _id: '$deck2',
-                games: { $sum: 1 },
-                wins: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$result', 1] }, // Vitória do duelist2 (deck2)
-                      1,
-                      0
-                    ]
-                  }
-                },
-                totalRating: { $sum: '$duelRating' },
-                uniqueUsers: { $addToSet: '$duelist2' } // Armazena duelist2 únicos
-              }
-            }
-          ]
-        }
-      },
-      // Combina os resultados de deck1Stats e deck2Stats
-      {
-        $project: {
-          allDecks: {
-            $concatArrays: ['$deck1Stats', '$deck2Stats']
-          }
-        }
-      },
-      // Desestrutura o array combinado
-      {
-        $unwind: '$allDecks'
-      },
-      // Agrupa novamente para somar as estatísticas de cada deck
       {
         $group: {
-          _id: '$allDecks._id',
-          games: { $sum: '$allDecks.games' },
-          wins: { $sum: '$allDecks.wins' },
-          totalRating: { $sum: '$allDecks.totalRating' },
-          uniqueUsers: { $addToSet: '$allDecks.uniqueUsers' } // Combina arrays de usuários únicos
-        }
-      },
-      // Calcula o número de usuários únicos
-      {
-        $project: {
-          id: '$_id',
-          deck: '$_id',
-          games: 1,
-          wins: 1,
-          rating: { $divide: ['$totalRating', '$games'] },
-          uniqueUsers: {
-            $size: {
-              $setUnion: '$uniqueUsers' // Une os arrays e conta os usuários únicos
+          _id: '$deck1',
+          games: { $sum: 1 },
+          wins: {
+            $sum: {
+              $cond: [{ $eq: ['$result', 0] }, 1, 0]
             }
-          }
+          },
+          totalRating: { $sum: '$duelRating' },
+          uniqueUsers: { $addToSet: '$duelist1' },
+          lastDuel: { $max: '$start' }
         }
       },
-      // Filtra decks com mais de 10 jogos
       {
-        $match: {
-          games: { $gt: 10 } // Apenas decks com mais de 10 jogos
+        $merge: {
+          into: tempCollection,
+          whenMatched: 'merge', // Combina os resultados se o documento já existir
+          whenNotMatched: 'insert' // Insere um novo documento se não existir
         }
       }
     ]);
+
+    // Processa as estatísticas de deck2 e armazena na coleção temporária
+    await Decks.aggregate([
+      matchStage,
+      {
+        $group: {
+          _id: '$deck2',
+          games: { $sum: 1 },
+          wins: {
+            $sum: {
+              $cond: [{ $eq: ['$result', 1] }, 1, 0]
+            }
+          },
+          totalRating: { $sum: '$duelRating' },
+          uniqueUsers: { $addToSet: '$duelist2' },
+          lastDuel: { $max: '$start' }
+        }
+      },
+      {
+        $merge: {
+          into: tempCollection,
+          whenMatched: 'merge', // Combina os resultados se o documento já existir
+          whenNotMatched: 'insert' // Insere um novo documento se não existir
+        }
+      }
+    ]);
+
+    // Combina os resultados da coleção temporária e aplica os filtros finais
+    const result = await mongoose.connection.collection(tempCollection).aggregate([
+      {
+        $group: {
+          _id: '$_id',
+          games: { $sum: '$games' },
+          wins: { $sum: '$wins' },
+          totalRating: { $sum: '$totalRating' },
+          uniqueUsers: { $addToSet: '$uniqueUsers' },
+          lastDuel: { $max: '$lastDuel' }
+        }
+      },
+      {
+        $addFields: {
+          rating: { $divide: ['$totalRating', '$games'] },
+          winRate: { $divide: ['$wins', '$games'] },
+          uniqueUsersCount: { $size: '$uniqueUsers' }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { games: { $gte: 50 }, rating: { $gte: 200 } }
+          ]
+        }
+      }
+    ]).toArray();
+
+    // Limpa a coleção temporária
+    await mongoose.connection.collection(tempCollection).drop();
 
     return result;
   } catch (error) {
@@ -455,12 +324,12 @@ export const getDeckStats = async (deckName = null) => {
   }
 };
 
-export const migrateDecks = async () => {
+export const migrateDecks = async (restart) => {
   await connectMongo();
 
   console.log('⏳ Iniciando migração em background...');
 
-  const lastId = await getLatestMigratedId();
+  const lastId = await getLatestMigratedId(restart);
   console.log(`📌 Último ID migrado: ${lastId}`);
 
   let offset = 0;

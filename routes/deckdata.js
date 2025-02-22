@@ -14,11 +14,11 @@ router.get('/', async (req, res) => {
   try {
     await connectMongo();
     const results = await getDeckStats();
-    const data = results.map(async ({ games, wins, deck, rating, uniqueUsers }) => ({
-      id: crypto.createHash("sha256").update(deck).digest("hex").slice(0, 8),
-      data: await getDeck(deck),
+    const data = results.map(async ({ games, wins, _id, rating, uniqueUsersCount, winRate, lastDuel }) => ({
+      id: crypto.createHash("sha256").update(_id).digest("hex").slice(0, 8),
+      data: await getDeck(_id),
       score: calculateScore(wins, games, rating),
-      games, wins, code: deck, rating, uniqueUsers,
+      games, wins, code: _id, rating, uniqueUsers: uniqueUsersCount, winRate, lastDuel
     }))
 
     res.json({ data: (await Promise.all(data)).sort((a, b) => b.score - a.score) });
@@ -33,20 +33,20 @@ router.get('/deck', async (req, res) => {
     await connectMongo();
     const deck = req.query.deck;
     const results = (await getDeckStats(deck))[0]
-    const { passwords, mainSize, sideSize } = decode(results.deck)
+    const { passwords, mainSize, sideSize } = decode(results._id)
     const { passwords: sanitizedPasswords } = (await getDataOmega(passwords))
     const mainDeck = sanitizedPasswords.slice(0, mainSize)
     const sideDeck = sideSize ? sanitizedPasswords.slice(-sideSize) : []
 
     const data = {
-      id: crypto.createHash("sha256").update(results.deck).digest("hex").slice(0, 8),
-      data: await getDeck(results.deck),
+      id: crypto.createHash("sha256").update(results._id).digest("hex").slice(0, 8),
+      data: await getDeck(results._id),
       score: calculateScore(results.wins, results.games, results.rating),
       games: results.games,
       wins: results.wins,
-      code: results.deck, 
+      code: results._id, 
       rating: results.rating,
-      uniqueUsers: results.uniqueUsers,
+      uniqueUsers: results.uniqueUsersCount,
       passwords: {
         mainDeck,
         sideDeck,
@@ -62,7 +62,9 @@ router.get('/deck', async (req, res) => {
 
 router.get('/update', async (req, res) => {
   res.json({ message: "🚀 Migração iniciada! Acompanhe os logs do servidor." });
-  migrateDecks(); // Executa a função em background
+  const restart = req.query.restart;
+  console.log(restart)
+  migrateDecks(restart);
 });
 
 router.get('/delete', async (req, res) => {
