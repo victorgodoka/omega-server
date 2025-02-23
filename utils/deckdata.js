@@ -225,115 +225,99 @@ export const getDeckStatsByName = async (model, deckName) => {
 };
 
 export const getDeckStats = async (deckName = null) => {
-  const tempCollection = 'temp_deck_stats';
-
   try {
     // Filtro para duelos envolvendo o deck especificado (se fornecido)
     const matchStage = deckName
       ? { $match: { $or: [{ deck1: deckName }, { deck2: deckName }] } }
       : { $match: {} };
 
-    // Processa as estatísticas de deck1 e armazena na coleção temporária
-    await Decks.aggregate([
+    // Pipeline para deck1
+    const pipelineDeck1 = [
       matchStage,
       {
         $group: {
           _id: '$deck1',
           games: { $sum: 1 },
-          wins: {
-            $sum: {
-              $cond: [{ $eq: ['$result', 0] }, 1, 0]
-            }
-          },
+          wins: { $sum: { $cond: [{ $eq: ['$result', 0] }, 1, 0] } },
           totalRating: { $sum: '$duelRating' },
-          uniqueUsers: { $addToSet: '$duelist1' }, // Adiciona duelist1 ao conjunto
+          uniqueUsers: { $addToSet: '$duelist1' },
           lastDuel: { $max: '$start' }
         }
-      },
-      {
-        $merge: {
-          into: tempCollection,
-          whenMatched: 'merge', // Combina os resultados se o documento já existir
-          whenNotMatched: 'insert' // Insere um novo documento se não existir
-        }
       }
-    ]);
+    ];
 
-    // Processa as estatísticas de deck2 e armazena na coleção temporária
-    await Decks.aggregate([
+    // Pipeline para deck2
+    const pipelineDeck2 = [
       matchStage,
       {
         $group: {
           _id: '$deck2',
           games: { $sum: 1 },
-          wins: {
-            $sum: {
-              $cond: [{ $eq: ['$result', 1] }, 1, 0]
-            }
-          },
+          wins: { $sum: { $cond: [{ $eq: ['$result', 1] }, 1, 0] } },
           totalRating: { $sum: '$duelRating' },
-          uniqueUsers: { $addToSet: '$duelist2' }, // Adiciona duelist2 ao conjunto
+          uniqueUsers: { $addToSet: '$duelist2' },
           lastDuel: { $max: '$start' }
         }
-      },
-      {
-        $merge: {
-          into: tempCollection,
-          whenMatched: 'merge', // Combina os resultados se o documento já existir
-          whenNotMatched: 'insert' // Insere um novo documento se não existir
-        }
       }
-    ]);
+    ];
 
-    // Combina os resultados da coleção temporária e aplica os filtros finais
-    const result = await mongoose.connection.collection(tempCollection).aggregate([
+    // Executa a pipeline unindo os resultados dos dois decks
+    const result = await Decks.aggregate([
+      // Pipeline para deck1
+      ...pipelineDeck1,
+      // Une os resultados do pipeline para deck2
+      {
+        $unionWith: {
+          coll: Decks.collection.name, // Nome da coleção, pode ser "Decks" ou o que você estiver usando
+          pipeline: pipelineDeck2
+        }
+      },
+      // Agrupa os resultados unidos para somar estatísticas de decks repetidos
       {
         $group: {
           _id: '$_id',
           games: { $sum: '$games' },
           wins: { $sum: '$wins' },
           totalRating: { $sum: '$totalRating' },
-          uniqueUsers: { $push: '$uniqueUsers' }, // Agrupa os arrays de usuários únicos
+          // Aqui usamos $push para juntar arrays e depois vamos unificá-los
+          uniqueUsers: { $push: '$uniqueUsers' },
           lastDuel: { $max: '$lastDuel' }
         }
       },
+      // Une os arrays de uniqueUsers de cada documento em um único array sem duplicatas
       {
         $addFields: {
-          rating: { $divide: ['$totalRating', '$games'] },
-          winRate: { $divide: ['$wins', '$games'] },
           uniqueUsers: {
             $reduce: {
               input: '$uniqueUsers',
               initialValue: [],
-              in: { $setUnion: ['$$value', '$$this'] } // Une os arrays e remove duplicatas
+              in: { $setUnion: ['$$value', '$$this'] }
             }
           }
         }
       },
+      // Calcula os campos adicionais (rating, winRate, contagem de usuários únicos)
       {
         $addFields: {
-          uniqueUsersCount: { $size: '$uniqueUsers' } // Calcula o número de usuários únicos
+          rating: { $divide: ['$totalRating', '$games'] },
+          winRate: { $divide: ['$wins', '$games'] },
+          uniqueUsersCount: { $size: '$uniqueUsers' }
         }
       },
+      // Aplica os filtros finais
       {
         $match: {
-          $or: [
-            { games: { $gte: 25 }, rating: { $gte: 200 }, winRate: { $gte: 0.45 } }
-          ]
+          games: { $gte: 25 },
+          rating: { $gte: 200 },
+          winRate: { $gte: 0.45 }
         }
       }
-    ]).toArray();
+    ], { allowDiskUse: true }).exec();
 
     return result;
   } catch (error) {
     console.error('Erro ao buscar estatísticas dos decks:', error);
     throw error;
-  } finally {
-    // Limpa a coleção temporária, se existir
-    const collections = await mongoose.connection.db.listCollections({ name: tempCollection }).toArray();
-    if (collections.length > 0) {
-      await mongoose.connection.collection(tempCollection).drop();
-    }
   }
 };
 
