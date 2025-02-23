@@ -225,14 +225,13 @@ export const getDeckStatsByName = async (model, deckName) => {
 };
 
 export const getDeckStats = async (deckName = null) => {
+  const tempCollection = 'temp_deck_stats';
+
   try {
     // Filtro para duelos envolvendo o deck especificado (se fornecido)
     const matchStage = deckName
       ? { $match: { $or: [{ deck1: deckName }, { deck2: deckName }] } }
       : { $match: {} };
-
-    // Nome da coleção temporária
-    const tempCollection = 'temp_deck_stats';
 
     // Processa as estatísticas de deck1 e armazena na coleção temporária
     await Decks.aggregate([
@@ -247,7 +246,7 @@ export const getDeckStats = async (deckName = null) => {
             }
           },
           totalRating: { $sum: '$duelRating' },
-          uniqueUsers: { $addToSet: '$duelist1' },
+          uniqueUsers: { $addToSet: '$duelist1' }, // Adiciona duelist1 ao conjunto
           lastDuel: { $max: '$start' }
         }
       },
@@ -273,7 +272,7 @@ export const getDeckStats = async (deckName = null) => {
             }
           },
           totalRating: { $sum: '$duelRating' },
-          uniqueUsers: { $addToSet: '$duelist2' },
+          uniqueUsers: { $addToSet: '$duelist2' }, // Adiciona duelist2 ao conjunto
           lastDuel: { $max: '$start' }
         }
       },
@@ -294,7 +293,7 @@ export const getDeckStats = async (deckName = null) => {
           games: { $sum: '$games' },
           wins: { $sum: '$wins' },
           totalRating: { $sum: '$totalRating' },
-          uniqueUsers: { $addToSet: '$uniqueUsers' },
+          uniqueUsers: { $push: '$uniqueUsers' }, // Agrupa os arrays de usuários únicos
           lastDuel: { $max: '$lastDuel' }
         }
       },
@@ -302,25 +301,39 @@ export const getDeckStats = async (deckName = null) => {
         $addFields: {
           rating: { $divide: ['$totalRating', '$games'] },
           winRate: { $divide: ['$wins', '$games'] },
-          uniqueUsersCount: { $size: '$uniqueUsers' }
+          uniqueUsers: {
+            $reduce: {
+              input: '$uniqueUsers',
+              initialValue: [],
+              in: { $setUnion: ['$$value', '$$this'] } // Une os arrays e remove duplicatas
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          uniqueUsersCount: { $size: '$uniqueUsers' } // Calcula o número de usuários únicos
         }
       },
       {
         $match: {
           $or: [
-            { games: { $gte: 50 }, rating: { $gte: 200 } }
+            { games: { $gte: 25 }, rating: { $gte: 200 }, winRate: { $gte: 0.45 } }
           ]
         }
       }
     ]).toArray();
 
-    // Limpa a coleção temporária
-    await mongoose.connection.collection(tempCollection).drop();
-
     return result;
   } catch (error) {
     console.error('Erro ao buscar estatísticas dos decks:', error);
     throw error;
+  } finally {
+    // Limpa a coleção temporária, se existir
+    const collections = await mongoose.connection.db.listCollections({ name: tempCollection }).toArray();
+    if (collections.length > 0) {
+      await mongoose.connection.collection(tempCollection).drop();
+    }
   }
 };
 
