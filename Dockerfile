@@ -1,6 +1,7 @@
 FROM node:22
 
 RUN apt-get update && apt-get install -y \
+  pdftk \
   build-essential \
   python3 \
   make \

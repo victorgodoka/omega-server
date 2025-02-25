@@ -14,9 +14,13 @@ router.get('/', async (req, res) => {
       success: true,
       message: 'Decks fetched successfully.',
       data: {
-        ...deck, 
+        mainDeck: (await getDataOmega(deck.passwords.slice(0, deck.mainSize))).data.filter(c => !c.isExtra),
+        extraDeck: (await getDataOmega(deck.passwords.slice(0, deck.mainSize))).data.filter(c => c.isExtra),
+        sideDeck: deck.sideSize ? (await getDataOmega(deck.passwords.slice(-deck.sideSize))).data : [],
         passwords: (await getDataOmega(deck.passwords)).passwords,
-        setcodes: await decodeDeck(deck.passwords)
+        setcodes: await decodeDeck(deck.passwords),
+        set: await decodeDeck(deck.passwords),
+        ...deck, 
       }
     });
 
