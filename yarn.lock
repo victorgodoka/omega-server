@@ -2402,6 +2402,11 @@ iconv-lite@^0.6.2, iconv-lite@^0.6.3:
   dependencies:
     safer-buffer ">= 2.1.2 < 3.0.0"
 
+iconv@*:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/iconv/-/iconv-3.0.1.tgz#31d319d71b59415cf348362c382961b1eb6f0e81"
+  integrity sha512-lJnFLxVc0d82R7GfU7a9RujKVUQ3Eee19tPKWZWBJtAEGRHVEyFzCtbNl3GPKuDnHBBRT4/nDS4Ru9AIDT72qA==
+
 ieee754@^1.1.13, ieee754@^1.1.4:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
@@ -2527,7 +2532,7 @@ kareem@2.6.3:
   resolved "https://registry.yarnpkg.com/kareem/-/kareem-2.6.3.tgz#23168ec8ffb6c1abfd31b7169a6fb1dd285992ac"
   integrity sha512-C3iHfuGUXK2u8/ipq9LfjFfXFxAZMQJJq7vLS45r3D9Y2xQ/m4S8zaR4zMLFWh9AsNPXmcFfUDhTEO8UIC/V6Q==
 
-lodash@^4.17.21:
+lodash@^4.17.21, lodash@~4.17.11:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -2997,6 +3002,14 @@ path-to-regexp@0.1.12:
   version "0.1.12"
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.12.tgz#d5e1a12e478a976d432ef3c58d534b9923164bb7"
   integrity sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==
+
+pdffiller@^0.0.11:
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/pdffiller/-/pdffiller-0.0.11.tgz#7a56323a43c9004123cb40008b4378abe05effab"
+  integrity sha512-VuiWyEgydNVeXX1rAhU+3yimEiZegtuMIBhS54bm8K6WHLzS8OSbGdVefJQGD49mmRlfCxi87JkSjyx468C8kQ==
+  dependencies:
+    lodash "~4.17.11"
+    utf8-fdf-generator "0.0.3"
 
 pg-cloudflare@^1.1.1:
   version "1.1.1"
@@ -3684,6 +3697,13 @@ unpipe@1.0.0, unpipe@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/unpipe/-/unpipe-1.0.0.tgz#b2bf4ee8514aae6165b4817829d21b2ef49904ec"
   integrity sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==
+
+utf8-fdf-generator@0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/utf8-fdf-generator/-/utf8-fdf-generator-0.0.3.tgz#397e8f7940c276d0e3d435ec27b17d3a57e8f9ce"
+  integrity sha512-M92vHNZwQm60ri9W1Yc4WxREbqIjN6TsU++ofkidxq9v+BOU+5GM2bHCwcGQStJaU5c3aB3JRCGe4kaflQavQg==
+  dependencies:
+    iconv "*"
 
 util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   version "1.0.2"

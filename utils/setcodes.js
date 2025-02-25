@@ -599,18 +599,29 @@ const countOccurrences = (array) => {
   return Object.entries(countMap).map(([id, qtd]) => ({ id: parseInt(id), qtd }));
 };
 
+export const spellHex = [65538, 2, 131074, 262146, 524290, 130]
+export const trapHex = [4, 1048580, 131076]
+export const extraHex = [67108897, 97, 8388641, 8225, 16777313, 25165857, 16785441, 12321, 8193, 4161, 8388609, 67108865, 4193]
 
 export const getDataOmega = async (passwords) => {
-  const sql = `SELECT x.id, x.alias, t.name, x.setcode FROM datas x JOIN texts t ON (t.id = x.id OR t.id = x.alias) WHERE x.id IN (${passwords.join(',')})`;
+  const sql = `SELECT x.id, x.alias, t.name, x.setcode, x.type FROM datas x JOIN texts t ON (t.id = x.id OR t.id = x.alias) WHERE x.id IN (${passwords.join(',')})`;
 
-  const data = await (new Promise((resolve, reject) => {
+  const dataSQL = await (new Promise((resolve, reject) => {
     db.all(sql, [], (err, rows) => {
       if (err) reject(err);
       resolve(rows);
     });
   }));
+
+  const sanitizedPasswords = passwords.map(id => dataSQL.find(c => c.id ===id)?.alias || id)
+  const data = dataSQL.map(d => ({
+    ...d,
+    qtd: countOccurrences(sanitizedPasswords).find(o => o.id === d.id || o.id === d.alias)?.qtd || 0,
+    isSpell: spellHex.includes(d.type),
+    isTrap: trapHex.includes(d.type),
+    isExtra: extraHex.includes(d.type),
+  }))
   
-  const sanitizedPasswords = passwords.map(id => data.find(c => c.id ===id)?.alias || id)
   return {
     passwords: sanitizedPasswords,
     deck: countOccurrences(sanitizedPasswords),

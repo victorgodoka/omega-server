@@ -330,7 +330,7 @@ export const migrateDecks = async (restart) => {
   console.log(`📌 Último ID migrado: ${lastId}`);
 
   let offset = 0;
-  const batchSize = 2500;
+  const batchSize = 500; // Ajuste o tamanho do batch conforme necessário
   let totalMigrated = 0;
 
   try {
@@ -358,12 +358,20 @@ export const migrateDecks = async (restart) => {
           upsert: true
         }
       }));
+      
+      try {
+        console.time('⏱️ Tempo da migração (bulkWrite)');
+        const result = await Decks.bulkWrite(bulkOps, { ordered: false });
+        console.timeEnd('⏱️ Tempo da migração (bulkWrite)');
 
-      const result = await Decks.bulkWrite(bulkOps, { ordered: false });
-      totalMigrated += result.upsertedCount + result.modifiedCount;
-      offset += batchSize;
+        totalMigrated += result.upsertedCount + result.modifiedCount;
+        offset += batchSize;
 
-      console.log(`✅ ${result.upsertedCount} duelos inseridos, ${result.modifiedCount} atualizados. Total: ${totalMigrated}`);
+        console.log(`✅ ${result.upsertedCount} duelos inseridos, ${result.modifiedCount} atualizados. Total: ${totalMigrated}`);
+      } catch (error) {
+        console.error('❌ Erro durante o bulkWrite:', error.message);
+        console.error('Detalhes do erro:', error);
+      }
     }
 
     console.log(`🎉 Migração concluída! Total: ${totalMigrated}`);

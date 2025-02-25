@@ -63,7 +63,6 @@ router.get('/deck', async (req, res) => {
 router.get('/update', async (req, res) => {
   res.json({ message: "🚀 Migração iniciada! Acompanhe os logs do servidor." });
   const restart = req.query.restart;
-  console.log(restart)
   migrateDecks(restart);
 });
 
