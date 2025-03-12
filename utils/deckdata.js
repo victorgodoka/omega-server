@@ -231,7 +231,6 @@ export const getDeckStats = async (deckName = null) => {
       ? { $match: { $or: [{ deck1: deckName }, { deck2: deckName }] } }
       : { $match: {} };
 
-    // Pipeline para deck1
     const pipelineDeck1 = [
       matchStage,
       {
@@ -240,13 +239,13 @@ export const getDeckStats = async (deckName = null) => {
           games: { $sum: 1 },
           wins: { $sum: { $cond: [{ $eq: ['$result', 0] }, 1, 0] } },
           totalRating: { $sum: '$duelRating' },
-          uniqueUsers: { $addToSet: '$duelist1' },
+          uniqueUsers: { $addToSet: '$duelist1' }, // $addToSet já garante unicidade
           lastDuel: { $max: '$start' }
         }
-      }
+      },
+      { $match: { games: { $gte: 25 } } } // Aplicando o filtro cedo
     ];
 
-    // Pipeline para deck2
     const pipelineDeck2 = [
       matchStage,
       {
@@ -258,58 +257,51 @@ export const getDeckStats = async (deckName = null) => {
           uniqueUsers: { $addToSet: '$duelist2' },
           lastDuel: { $max: '$start' }
         }
-      }
+      },
+      { $match: { games: { $gte: 25 } } }
     ];
 
-    // Executa a pipeline unindo os resultados dos dois decks
     const result = await Decks.aggregate([
-      // Pipeline para deck1
       ...pipelineDeck1,
-      // Une os resultados do pipeline para deck2
       {
         $unionWith: {
-          coll: Decks.collection.name, // Nome da coleção, pode ser "Decks" ou o que você estiver usando
+          coll: Decks.collection.name,
           pipeline: pipelineDeck2
         }
       },
-      // Agrupa os resultados unidos para somar estatísticas de decks repetidos
       {
         $group: {
           _id: '$_id',
           games: { $sum: '$games' },
           wins: { $sum: '$wins' },
           totalRating: { $sum: '$totalRating' },
-          // Aqui usamos $push para juntar arrays e depois vamos unificá-los
-          uniqueUsers: { $push: '$uniqueUsers' },
+          uniqueUsers: { $push: '$uniqueUsers' }, // Acumulando arrays para processar depois
           lastDuel: { $max: '$lastDuel' }
         }
       },
-      // Une os arrays de uniqueUsers de cada documento em um único array sem duplicatas
       {
         $addFields: {
-          uniqueUsers: {
-            $reduce: {
-              input: '$uniqueUsers',
-              initialValue: [],
-              in: { $setUnion: ['$$value', '$$this'] }
-            }
-          }
-        }
-      },
-      // Calcula os campos adicionais (rating, winRate, contagem de usuários únicos)
-      {
-        $addFields: {
+          uniqueUsers: { $reduce: { input: '$uniqueUsers', initialValue: [], in: { $setUnion: ['$$value', '$$this'] } } },
           rating: { $divide: ['$totalRating', '$games'] },
           winRate: { $divide: ['$wins', '$games'] },
           uniqueUsersCount: { $size: '$uniqueUsers' }
         }
       },
-      // Aplica os filtros finais
       {
         $match: {
-          games: { $gte: 25 },
           rating: { $gte: 200 },
           winRate: { $gte: 0.45 }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          games: 1,
+          wins: 1,
+          rating: 1,
+          winRate: 1,
+          uniqueUsersCount: 1,
+          lastDuel: 1
         }
       }
     ], { allowDiskUse: true }).exec();
