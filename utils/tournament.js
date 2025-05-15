@@ -24,7 +24,7 @@ export const getTournament = async (id) => {
   const [tournament] = (await db.execute(tournamentQuery))[0];
 
   const decksQuery = `
-    SELECT CAST(u.user_id AS CHAR) AS id, u.deck
+    SELECT CAST(u.user_id AS CHAR) AS id, u.deck, u.wins, u.loses, u.draws, u.rating
     FROM omega.tournament_user u
     WHERE u.tournament_id = ${id}
   `
@@ -88,5 +88,7 @@ export const getTournament = async (id) => {
     }
   }))
 
-  return { decks: deckData, players, tournament, rounds }
+  const tableData = decks.map(({ user_id, wins, loses, draws, rating }) => ({ id: user_id, wins, loses, draws, rating }))
+
+  return { decks: deckData, players, tournament, rounds, table: tableData }
 }

@@ -55,4 +55,4 @@ app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
 
-export const LASTBANLIST = '2024-12-09'
+export const LASTBANLIST = '2025-04-07'

@@ -21,7 +21,7 @@ export const migrateData = async () => {
   console.log("Iniciando a migração de dados...");
 
   // Selecionar os dados do MySQL com a condição de data
-  mysqlConnection.query('SELECT CAST(d.duelist1 AS CHAR) AS duelist1, CAST(d.duelist2 AS CHAR) AS duelist2, d.id, d.region, d.result, d.result1, d.result2, d.result3, d.reason1, d.reason2, d.reason3, d.deck1, d.deck2, d.start, d.end, d.first, d.usage FROM duel d WHERE d.start >= "2024-12-09"', async (err, results) => {
+  mysqlConnection.query(`SELECT CAST(d.duelist1 AS CHAR) AS duelist1, CAST(d.duelist2 AS CHAR) AS duelist2, d.id, d.region, d.result, d.result1, d.result2, d.result3, d.reason1, d.reason2, d.reason3, d.deck1, d.deck2, d.start, d.end, d.first, d.usage FROM duel d WHERE d.start >= ${LASTBANLIST}`, async (err, results) => {
     if (err) {
       console.error('Erro ao buscar dados do MySQL:', err);
       return;
