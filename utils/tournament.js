@@ -88,7 +88,7 @@ export const getTournament = async (id) => {
     }
   }))
 
-  const tableData = decks.map(({ user_id, wins, loses, draws, rating }) => ({ id: user_id, wins, loses, draws, rating }))
-
+  const tableData = decks.map(({ id, wins, loses, draws, rating }) => ({ id, wins, loses, draws, rating }))
+  console.log(decks)
   return { decks: deckData, players, tournament, rounds, table: tableData }
 }

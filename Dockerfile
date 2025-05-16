@@ -21,9 +21,6 @@ RUN npm install --legacy-peer-deps
 # Copia o restante do código
 COPY . .
 
-# Copia o .env, se existir no ambiente de build
-COPY .env.production .env
-
 # Expõe as portas
 EXPOSE 3000
 EXPOSE 3001
