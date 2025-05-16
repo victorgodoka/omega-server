@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import decks from './routes/decks.js';
@@ -6,14 +8,11 @@ import rankedDecks from './routes/rankedDecks.js';
 import duelist from './routes/duelist.js';
 import leaderboard from './routes/leaderboard.js';
 import lastLogins from './routes/lastLogins.js';
-import deckdata from './routes/deckdata.js';
 import tournaments from './routes/tournaments.js';
 import convert from './routes/convert.js';
 import profile from './routes/profile.js';
-import updatedb from './routes/updatedb.js';
 import pdf from './routes/pdf.js';
 
-dotenv.config();
 
 const app = express();
 const port = 3000;
@@ -38,11 +37,9 @@ app.use('/api/duelist', duelist)
 app.use('/api/ranked-decks', rankedDecks)
 app.use('/api/leaderboard', leaderboard)
 app.use('/api/lastlogins', lastLogins)
-app.use('/api/deckdata', deckdata)
 app.use('/api/tournaments', tournaments)
 app.use('/api/convert', convert)
 app.use('/api/profile', profile)
-app.use('/api/updatedb', updatedb)
 app.use('/api/pdf', pdf)
 
 app.use((err, req, res, next) => {

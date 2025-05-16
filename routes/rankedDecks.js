@@ -1,7 +1,5 @@
 import express from 'express'
 import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-dotenv.config();
 
 const router = express.Router();
 const pool = mysql.createPool({

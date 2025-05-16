@@ -1,3 +1,5 @@
 node_modules
 npm-debug.log
-*.lock
+Dockerfile
+docker-compose.yml
+.env

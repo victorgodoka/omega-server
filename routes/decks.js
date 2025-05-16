@@ -1,10 +1,8 @@
 import express from 'express'
 import moment from "moment";
-import dotenv from 'dotenv';
 import db from '../utils/db.js';
 import { LASTBANLIST } from '../index.js';
 import { getDeck } from '../utils/decks.js';
-dotenv.config();
 
 const router = express.Router();
 const getFinalData = (arr) => arr.reduce((acc, { deck, win, loss }) => {
