@@ -1,30 +1,23 @@
 FROM node:22
 
-# Instala dependências do sistema
 RUN apt-get update && apt-get install -y \
   pdftk \
   build-essential \
   python3 \
   make \
   g++ \
+  curl \
   && apt-get clean
 
-# Define diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos de dependências primeiro
 COPY package.json package-lock.json* ./
-
-# Instala as dependências do projeto
 RUN npm install --legacy-peer-deps
 
-# Copia o restante do código
 COPY . .
 
-# Expõe as portas
-EXPOSE 3000
-EXPOSE 3001
-EXPOSE 27017
+RUN mkdir -p data && \
+  curl -L https://github.com/duelists-unite/omega-3/releases/download/data/omega.db -o data/omega.db
 
-# Comando para iniciar o app
+EXPOSE 3000
 CMD ["npm", "start"]
